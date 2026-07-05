@@ -222,8 +222,8 @@ class DividendMonitor:
             "trading_day_counter": 0,          # 建仓后累计交易日
             "first_build_completed": False,    # 首次建仓是否完成
         }
-        self._init_state()
         self.is_first_run = not (self.script_dir / "monitor_state.json").exists()
+        self._init_state()
         self._load_persistent_state()
         self.logger.info("DividendMonitor v8 初始化完成")
         if self.is_first_run:
