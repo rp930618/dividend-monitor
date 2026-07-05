@@ -1072,8 +1072,10 @@ class DividendMonitor:
                 continue
 
             build_amount = h.target_amount * batch1_pct
-            shares = int(build_amount / h.price / h.min_lots) * h.min_lots if h.price > 0 else 0
-            actual_amount = shares * h.price if shares > 0 else 0
+            fd = self.factor_data.get(h.code)
+            price_val = fd.price if fd else 0
+            shares = int(build_amount / price_val / h.min_lots) * h.min_lots if price_val > 0 else 0
+            actual_amount = shares * price_val if shares > 0 else 0
 
             if actual_amount > 0:
                 signals.append(TradeSignal(
@@ -1187,8 +1189,10 @@ class DividendMonitor:
                     )
                     this_batch_pct = batch_pct
                     build_amount = h.target_amount * this_batch_pct
-                    shares = int(build_amount / h.price / h.min_lots) * h.min_lots if h.price > 0 else 0
-                    actual_amount = shares * h.price if shares > 0 else 0
+                    fd = self.factor_data.get(h.code)
+                    price_val = fd.price if fd else 0
+                    shares = int(build_amount / price_val / h.min_lots) * h.min_lots if price_val > 0 else 0
+                    actual_amount = shares * price_val if shares > 0 else 0
 
                     if actual_amount > 0:
                         signals.append(TradeSignal(
