@@ -66,8 +66,8 @@ holdings:
     min_lots: 100
     exchange: "sh"
 
-  - code: "601006"
-    name: "大秦铁路"
+  - code: "600377"
+    name: "宁沪高速"
     target_weight: 0.10          # 目标权重 10%
     target_amount: 40500
     type: "stock"
@@ -84,16 +84,21 @@ holdings:
     exchange: ""
 
 # -------------------------------------------------
-# 2. 评分体系权重（满分100）
+# 2. 评分体系权重（满分100）— v8.3 改进版
 # -------------------------------------------------
+# 改进说明：增加动态趋势权重，降低静态指标权重
+# 核心目标：拦截"红利陷阱"（高股息+基本面恶化）
 scoring_weights:
-  dividend_yield:      25   # 股息率
-  roe_level:           20   # ROE水平
-  roe_stability:       15   # ROE稳定性
-  cashflow_to_debt:    15   # 现金流/负债
-  pe_valuation:        10   # PE估值
-  low_volatility:      10   # 低波动
-  earnings_growth:      5   # 盈利增长
+  dividend_yield:      15   # 股息率（原25→15，避免高股息陷阱）
+  roe_level:           10   # ROE水平（原20→10，静态权重下调）
+  roe_stability:       10   # ROE稳定性（新增：3年趋势重于单点）
+  cashflow_to_debt:    15   # 现金流/负债（不变）
+  pe_valuation:        10   # PE估值（不变）
+  low_volatility:       5   # 低波动（原10→5，趋势比波动更重要）
+  earnings_growth:     15   # 盈利增长（原5→15，增加增速要求）
+  cashflow_trend:       5   # 经营现金流趋势（新增）
+  dividend_quality:    10   # 股息可持续性（新增：分红/经营现金流）
+  industry_momentum:    5   # 行业景气度（新增）
 
 # 因子预处理参数
 factor_preprocess:
@@ -354,3 +359,215 @@ logging:
   file: "dividend_monitor.log"
   max_bytes: 10485760                 # 10MB
   backup_count: 5
+
+# -------------------------------------------------
+# 12. 数据源配置（v8.3 新增：多源降级链）
+# -------------------------------------------------
+data_source:
+  # 主数据源降级链（按优先级排列）
+  fallback_chain:
+    - name: "tencent_http"
+      enabled: true
+      description: "腾讯财经HTTP接口 — 零依赖、速度快、跨境可用"
+    - name: "sina_http"
+      enabled: true
+      description: "新浪财经HTTP接口 — 腾讯异常时降级"
+    - name: "akshare"
+      enabled: true
+      description: "AKShare — 需要历史数据或财务数据时"
+    - name: "static"
+      enabled: true
+      description: "内置静态兜底数据"
+
+# -------------------------------------------------
+# 13. 备选池（v8.3 重构：按现有持仓分类的替补标的）
+# -------------------------------------------------
+# 设计原则：
+#   1. 每个现有持仓标的配置2~3个同类或风格相近的替补
+#   2. 替补标的不在当前持仓中
+#   3. 替补需满足"低估值+高股息+长期稳定"标准
+#   4. 补位时优先从被清仓标的的对应备选池中筛选
+# -------------------------------------------------
+alternatives_pool:
+  version: "1.0"
+  update_frequency: "quarterly"
+
+  # === 银行：招商银行(600036) 备选 ===
+  "600036":
+    sector: "银行"
+    candidates:
+      - code: "601288"
+        name: "农业银行"
+        type: "stock"
+        exchange: "sh"
+        reason: "国有大行中ROE最高(10.16%)，股息率5.3%，PE仅6.6x"
+      - code: "601166"
+        name: "兴业银行"
+        type: "stock"
+        exchange: "sh"
+        reason: "股息率5.8%最高，PB仅0.48x破净，分红稳定"
+
+  # === 家电：格力电器(000651) 备选 ===
+  "000651":
+    sector: "家电"
+    candidates:
+      - code: "600690"
+        name: "海尔智家"
+        type: "stock"
+        exchange: "sh"
+        reason: "白电唯一正增长(+4.3%)，ROE 17%，全球化布局"
+      - code: "002032"
+        name: "苏泊尔"
+        type: "stock"
+        exchange: "sz"
+        reason: "小家电龙头，股息率6.07%，但净利润下滑6.6%"
+
+  # === 建筑：中国建筑(601668) 备选 ===
+  "601668":
+    sector: "建筑"
+    candidates:
+      - code: "601186"
+        name: "中国铁建"
+        type: "stock"
+        exchange: "sh"
+        reason: "基建央企分红率最高(25.5%)，现金流改善"
+      - code: "601800"
+        name: "中国交建"
+        type: "stock"
+        exchange: "sh"
+        reason: "海外工程占比高，分红率21.5%，估值极低"
+
+  # === 水电：长江电力(600900) 备选 ===
+  "600900":
+    sector: "水电/公用事业"
+    candidates:
+      - code: "600886"
+        name: "国投电力"
+        type: "stock"
+        exchange: "sh"
+        reason: "水电+火电协同，净利增速11.3%领先，股息率3.7%"
+      - code: "600025"
+        name: "华能水电"
+        type: "stock"
+        exchange: "sh"
+        reason: "澜沧江流域龙头，分红稳定，估值合理"
+
+  # === 食品：双汇发展(000895) 备选 ===
+  "000895":
+    sector: "食品饮料"
+    candidates:
+      - code: "600887"
+        name: "伊利股份"
+        type: "stock"
+        exchange: "sh"
+        reason: "乳业龙头，净利暴增36.8%，PE仅14.5x，股息率5.2%"
+      - code: "002557"
+        name: "洽洽食品"
+        type: "stock"
+        exchange: "sz"
+        reason: "瓜子龙头，ROE 14.8%，但净利润承压"
+
+  # === ETF：红利低波ETF(515450) 无需备选 ===
+  "515450":
+    sector: "指数ETF"
+    candidates: []
+
+  # === 电信：中国移动(600941) 备选 ===
+  "600941":
+    sector: "电信运营"
+    candidates:
+      - code: "601728"
+        name: "中国电信"
+        type: "stock"
+        exchange: "sh"
+        reason: "股息率5.16%与移动相当，派息率75%，业务稳健"
+      - code: "600050"
+        name: "中国联通"
+        type: "stock"
+        exchange: "sh"
+        reason: "股息率3.67%偏低，但数字化业务增速快"
+
+  # === 高速：宁沪高速(600377) 备选 ===
+  "600377":
+    sector: "高速公路"
+    candidates:
+      - code: "000429"
+        name: "粤高速A"
+        type: "stock"
+        exchange: "sz"
+        reason: "ROE 16.83%板块最高，分红率70%，股息率4.8%"
+      - code: "600012"
+        name: "皖通高速"
+        type: "stock"
+        exchange: "sh"
+        reason: "安徽核心路产，净利增速12.49%，ROE 14%"
+
+  # === 跨行业通用备选（当特定备选池无合格标的时使用） ===
+  "_general":
+    sector: "跨行业"
+    candidates:
+      - code: "000429"
+        name: "粤高速A"
+        type: "stock"
+        exchange: "sz"
+        reason: "高速公路ROE最高，分红稳定"
+      - code: "600803"
+        name: "新奥股份"
+        type: "stock"
+        exchange: "sh"
+        reason: "燃气龙头ROE 19.35%，股息率5.1%"
+      - code: "601098"
+        name: "中南传媒"
+        type: "stock"
+        exchange: "sh"
+        reason: "出版传媒ROE 10%，股息率5%，主业稳健"
+
+# -------------------------------------------------
+# 14. 补位机制（v8.3 新增：清仓后替补规则）
+# -------------------------------------------------
+replacement_policy:
+  enabled: true
+  description: "风控清仓后的补位机制 — 7天冷却期 + 观察清单筛选"
+
+  # 冷却期：风控清仓后进入冷静观察期
+  cooling_off_days: 7
+
+  # 补位触发条件（候选标的必须同时满足）
+  entry_conditions:
+    min_score_ratio: 0.95        # 评分 >= 持仓最低评分 × 0.95
+    min_dividend_yield_ratio: 0.80  # 股息率 >= 被清仓标的 × 0.8
+    max_valuation_ratio: 1.2     # 估值不高于被清仓标的1.2倍
+    min_consecutive_dividend_years: 3  # 过去3年连续分红
+    st_excluded: true            # 排除ST标的
+    min_avg_daily_turnover_million: 100  # 日均成交额>=1亿元
+
+  # 优先级排序规则
+  priority_rules:
+    primary_sort: "composite_score_desc"
+    industry_max_weight_pct: 25   # 单一行业权重上限25%
+    pe_historical_percentile_threshold: 70  # PE历史5年分位>70%降级
+    min_dividend_yield_pct: 3.0   # 股息率<3%降级
+
+  # 无合适补位标的时的资金处理
+  fallback_action: "cash_pool"   # 进入现金池按ERP管理
+
+# -------------------------------------------------
+# 15. 一票否决规则（v8.3 新增：硬性排除条件）
+# -------------------------------------------------
+veto_rules:
+  description: "满足任一条件即直接排除，不进入评分环节"
+  conditions:
+    - name: "roe_consecutive_decline"
+      enabled: true
+      consecutive_years: 3
+      roe_threshold: 0.10         # ROE连续3年下降且最新<10%
+    - name: "cashflow_consecutive_decline"
+      enabled: true
+      consecutive_years: 2
+      decline_pct_threshold: 0.30  # 经营现金流连续2年下降且降幅>30%
+    - name: "dividend_unsustainable"
+      enabled: true
+      payout_to_operating_cashflow_max: 1.00  # 分红/经营现金流>100%
+    - name: "high_debt"
+      enabled: true
+      debt_to_asset_max: 0.60      # 资产负债率>60%
