@@ -1,0 +1,318 @@
+# ============================================
+# v8 最终版红利策略监测配置
+# ============================================
+
+# 组合总资金（元）
+total_capital: 405000
+
+# -------------------------------------------------
+# 1. 标的配置（9只权益 + 现金）
+# -------------------------------------------------
+holdings:
+  # 股票型标的（A股）
+  - code: "600036"
+    name: "招商银行"
+    target_weight: 0.14          # 目标权重 14%
+    target_amount: 56700         # 目标金额（元）
+    type: "stock"
+    min_lots: 100                # 最小手数（A股1手=100股）
+    exchange: "sh"
+
+  - code: "600900"
+    name: "长江电力"
+    target_weight: 0.10
+    target_amount: 40500
+    type: "stock"
+    min_lots: 100
+    exchange: "sh"
+
+  - code: "600011"
+    name: "华能国际"
+    target_weight: 0.09
+    target_amount: 36450
+    type: "stock"
+    min_lots: 100
+    exchange: "sh"
+
+  - code: "000651"
+    name: "格力电器"
+    target_weight: 0.12
+    target_amount: 48600
+    type: "stock"
+    min_lots: 100
+    exchange: "sz"
+
+  - code: "601668"
+    name: "中国建筑"
+    target_weight: 0.12
+    target_amount: 48600
+    type: "stock"
+    min_lots: 100
+    exchange: "sh"
+
+  - code: "600941"
+    name: "中国移动"
+    target_weight: 0.09
+    target_amount: 36450
+    type: "stock"
+    min_lots: 100
+    exchange: "sh"
+
+  - code: "601006"
+    name: "大秦铁路"
+    target_weight: 0.09
+    target_amount: 36450
+    type: "stock"
+    min_lots: 100
+    exchange: "sh"
+
+  - code: "000895"
+    name: "双汇发展"
+    target_weight: 0.10
+    target_amount: 40500
+    type: "stock"
+    min_lots: 100
+    exchange: "sz"
+
+  # ETF型标的
+  - code: "515450"
+    name: "红利低波ETF"
+    target_weight: 0.10
+    target_amount: 40500
+    type: "etf"
+    min_lots: 100
+    exchange: "sh"
+
+  # 现金仓位
+  - code: "CASH"
+    name: "现金"
+    target_weight: 0.05
+    target_amount: 20250
+    type: "cash"
+    min_lots: 1
+    exchange: ""
+
+# -------------------------------------------------
+# 2. 评分体系权重（满分100）
+# -------------------------------------------------
+scoring_weights:
+  dividend_yield:      25   # 股息率
+  roe_level:           20   # ROE水平
+  roe_stability:       15   # ROE稳定性
+  cashflow_to_debt:    15   # 现金流/负债
+  pe_valuation:        10   # PE估值
+  low_volatility:      10   # 低波动
+  earnings_growth:      5   # 盈利增长
+
+# 因子预处理参数
+factor_preprocess:
+  winsorize_lower: 0.01     # 1% 下限Winsorize
+  winsorize_upper: 0.99     # 99% 上限Winsorize
+  zscore_rolling_window: 250 # Z-score滚动窗口（交易日）
+
+# -------------------------------------------------
+# 3. 评分 -> 目标仓位映射
+# -------------------------------------------------
+score_to_position:
+  - min_score: 70
+    position_pct: 1.00      # 100%
+  - min_score: 60
+    position_pct: 0.85      # 85%
+  - min_score: 50
+    position_pct: 0.70      # 70%
+  - min_score: 40
+    position_pct: 0.50      # 50%
+  - min_score: 30
+    position_pct: 0.25      # 25%
+  - min_score: 0
+    position_pct: 0.00      # 0%
+
+# -------------------------------------------------
+# 4. 容差参数（5/25规则）
+# -------------------------------------------------
+tolerance:
+  absolute_pct: 0.05        # 绝对容差 5pp (percentage points)
+  relative_pct: 0.25        # 相对容差 25%
+
+# -------------------------------------------------
+# 5. 调仓频率参数（混合信号分级触发方案）
+# -------------------------------------------------
+rebalance:
+  # === 检查周期 ===
+  # 建仓期：前3个月，每两周检查一次
+  build_period_months: 3
+  build_period_check_interval_days: 14
+
+  # 持有期：每10个交易日进行一次综合检查
+  holding_check_interval_days: 10
+
+  # 时间保底：每年1月和7月强制全面检查（无论触发条件）
+  time_backup_months: [1, 7]
+  time_backup_day: 1
+
+  # === 一级触发：权重偏离（单标的再平衡）===
+  level1:
+    # 5/25容差规则
+    absolute_pct: 0.05        # 绝对容差 5pp
+    relative_pct: 0.25        # 相对容差 25%
+    # 连续确认：偏离需持续 ≥3个交易日才触发（避免单日噪音）
+    consecutive_days: 3
+    # 冷却期：同一标的因L1触发调仓后，7个交易日内不再因同一原因触发
+    cooldown_days: 7
+    # 操作范围：仅调整该单一标的至目标权重
+    scope: "single"
+
+  # === 二级触发：估值分位（全组合再平衡+现金调整）===
+  level2:
+    # 触发条件：组合估值分位突破阈值并持续确认
+    # 高估区：组合加权PE分位 > 85% 或 DY分位 < 15%（持续5天）
+    # 低估区：组合加权PE分位 < 15% 或 DY分位 > 85%（持续5天）
+    overvalued_percentile: 85
+    undervalued_percentile: 15
+    consecutive_days: 5
+    # 操作范围：全组合再平衡至目标权重 + ERP现金调整
+    scope: "full_portfolio"
+    # 估值历史数据最少需要的天数才能计算分位
+    min_history_days: 60
+
+  # === 三级触发：基本面红线（立即清仓，无冷却期）===
+  level3:
+    # 由 risk_control.red_lines 定义，触发后立即执行
+    # 此处仅配置权重重分配参数
+    scope: "immediate_clear"
+    # 清仓后观察期（天）
+    observation_period_days: 90
+
+  # === 事件驱动：DDCA被动补仓 ===
+  event_driven:
+    ddca: true
+    dividend_yield_risk: true
+
+# -------------------------------------------------
+# 6. 风控红线阈值
+# -------------------------------------------------
+risk_control:
+  # 基本面6条红线
+  red_lines:
+    roe_below_threshold: 0.08          # ROE < 8%
+    roe_consecutive_years: 3           # 连续3年
+
+    net_profit_decline_pct: 0.10       # 净利润下降 > 10%
+    net_profit_consecutive_years: 2    # 连续2年
+
+    operating_cashflow_consecutive_years: 2  # 经营现金流连续2年为负
+
+    payout_ratio_threshold: 0.80       # 分红率 > 80%
+    payout_with_earnings_decline: true # 且盈利下降
+
+    dividend_cut_flag: true            # 分红削减/中断
+    st_status_flag: true               # ST状态
+
+  # 清仓后观察期（天）
+  observation_period_days: 90
+
+  # 股息率风控
+  dividend_yield_risk:
+    # 个股股息率 < 3% 连续10天 → 清仓
+    single_below_threshold: 0.03
+    single_consecutive_days: 10
+
+    # 组合股息率 < 3.5% 连续15天 → 减仓50%
+    portfolio_below_threshold_1: 0.035
+    portfolio_consecutive_days_1: 15
+    portfolio_reduce_pct_1: 0.50
+
+    # 组合股息率 < 2.5% → 立即清仓
+    portfolio_below_threshold_2: 0.025
+    portfolio_reduce_pct_2: 1.00       # 清仓
+
+  # 减仓冷却期（交易日）
+  cooldown_days: 10
+
+  # 单只标的权重上限
+  single_max_weight: 0.25
+
+# -------------------------------------------------
+# 7. 现金管理（基于股债利差ERP动态调节）
+# -------------------------------------------------
+cash_management:
+  # ERP区间对应现金比例
+  erp_to_cash:
+    - min_erp: 6.0
+      cash_weight: 0.03              # ERP >= 6% → 现金3%
+    - min_erp: 4.5
+      cash_weight: 0.10              # ERP 4.5%-6% → 现金10%
+    - min_erp: 3.0
+      cash_weight: 0.15              # ERP 3%-4.5% → 现金15%
+    - min_erp: 1.5
+      cash_weight: 0.20              # ERP 1.5%-3% → 现金20%
+    - min_erp: 0.0
+      cash_weight: 0.30              # ERP < 1.5% → 现金30%
+
+  # ERP计算参数
+  erp_calculation:
+    index_code: "000001"             # 上证指数
+    risk_free_rate_source: "10y_bond" # 10年期国债收益率
+    pe_type: "pe_ttm"               # 使用PE-TTM计算盈利收益率
+
+# -------------------------------------------------
+# 8. DDCA被动补仓规则（持有期内）
+# -------------------------------------------------
+ddca:
+  # 触发条件1：股息率 >= 5.5%
+  dividend_yield_trigger: 0.055
+
+  # 触发条件2：月度跌幅 >= 3%
+  monthly_drop_trigger: 0.03
+
+  # 单次补仓上限（占组合比例）
+  max_add_pct_per_trade: 0.10
+
+  # 适用阶段：仅持有期（建仓期不触发）
+  active_in_build_period: false
+
+# -------------------------------------------------
+# 9. 分红处理参数
+# -------------------------------------------------
+dividend_handling:
+  # 分红累计到现金池，半年度调仓时再投资
+  reinvest_frequency: "semi_annual"   # semi_annual / annual
+
+  # 持股免税提醒阈值（天）
+  tax_free_threshold_days: 365
+
+  # 分红税率（未满足免税条件）
+  dividend_tax_rate: 0.20             # 20%（实际根据持有时间可能为20%/10%/0%）
+
+# -------------------------------------------------
+# 10. 通知与日志
+# -------------------------------------------------
+notification:
+  # 企业微信Webhook URL 环境变量名
+  wechat_webhook_env: "WECHAT_WEBHOOK_URL"
+
+  # 日报推送时间（可配合GitHub Actions调度）
+  daily_push_time: "13:30"
+
+  # 是否推送详细因子评分
+  push_detailed_score: true
+
+# -------------------------------------------------
+# 11. 数据与日志
+# -------------------------------------------------
+data:
+  # AKShare数据获取失败时是否使用内置静态数据兜底
+  fallback_to_static: true
+
+  # 历史数据获取范围（年）
+  history_years: 5
+
+  # 财务数据季度缓存（天）
+  finance_cache_days: 7
+
+logging:
+  level: "INFO"                       # DEBUG / INFO / WARNING / ERROR
+  format: "%(asctime)s [%(levelname)s] %(message)s"
+  file: "dividend_monitor.log"
+  max_bytes: 10485760                 # 10MB
+  backup_count: 5
