@@ -368,8 +368,8 @@ class DividendMonitor:
         else:
             yf_code = h.code + ".SS"  # 默认上海
 
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=400)
+        end_date = pd.Timestamp.now(tz="UTC")
+        start_date = end_date - pd.Timedelta(days=400)
 
         ticker = yf.Ticker(yf_code)
         df_hist = ticker.history(start=start_date, end=end_date)
@@ -386,8 +386,8 @@ class DividendMonitor:
         # 获取分红数据
         divs = ticker.dividends
         if divs is not None and not divs.empty and len(divs) > 0:
-            # 取最近一年分红总和
-            one_year_ago = end_date - timedelta(days=365)
+            # 取最近一年分红总和（使用pd.Timestamp避免时区不兼容）
+            one_year_ago = pd.Timestamp(end_date) - pd.Timedelta(days=365)
             recent_divs = divs[divs.index >= one_year_ago]
             total_div = float(recent_divs.sum())
             fd.dividend_yield = total_div / fd.price if fd.price > 0 else 0.04
