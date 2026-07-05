@@ -39,6 +39,13 @@ try:
 except Exception:
     AKSHARE_AVAILABLE = False
 
+# 尝试导入yfinance（海外环境备用数据源）
+try:
+    import yfinance as yf
+    YFINANCE_AVAILABLE = True
+except Exception:
+    YFINANCE_AVAILABLE = False
+
 
 # ============================================
 # 0. 静态兜底数据（AKShare获取失败时使用）
@@ -259,11 +266,14 @@ class DividendMonitor:
             ))
 
     def _init_state(self):
+        is_fresh_start = self.is_first_run
         for h in self.holdings:
             self.state["last_reduce_date"][h.code] = None
             self.state["observation_until"][h.code] = None
             self.state["dividend_yield_low_days"][h.code] = 0
-            if h.code not in self.state["holding_days"]:
+            if is_fresh_start:
+                self.state["holding_days"][h.code] = 0
+            elif h.code not in self.state["holding_days"]:
                 self.state["holding_days"][h.code] = max(0, (datetime.now() - HOLDING_START_DATE).days)
 
     # -------------------------------------------------
@@ -307,22 +317,105 @@ class DividendMonitor:
     def fetch_data(self):
         self.logger.info("===== 开始数据获取 =====")
         fallback = self.config.get("data", {}).get("fallback_to_static", True)
+        data_source_stats = {"akshare": 0, "yfinance": 0, "static": 0}
         for h in self.holdings:
             if h.type == "cash":
                 self.factor_data[h.code] = self._get_static_data(h.code)
                 continue
-            try:
-                fd = self._fetch_akshare_data(h)
-                self.factor_data[h.code] = fd
-                self.logger.info(f"[{h.code}] AKShare数据获取成功: 价格={fd.price:.2f}, DY={fd.dividend_yield:.2%}")
-            except Exception as e:
-                self.logger.warning(f"[{h.code}] AKShare获取失败: {e}")
+
+            fd = None
+
+            # 优先尝试AKShare（国内环境最佳）
+            if AKSHARE_AVAILABLE:
+                try:
+                    fd = self._fetch_akshare_data(h)
+                    data_source_stats["akshare"] += 1
+                    self.logger.info(f"[{h.code}] AKShare数据获取成功: 价格={fd.price:.2f}, DY={fd.dividend_yield:.2%}")
+                except Exception as e:
+                    self.logger.warning(f"[{h.code}] AKShare获取失败: {e}")
+
+            # AKShare失败，尝试yfinance（海外环境稳定）
+            if fd is None and YFINANCE_AVAILABLE:
+                try:
+                    fd = self._fetch_yfinance_data(h)
+                    data_source_stats["yfinance"] += 1
+                    self.logger.info(f"[{h.code}] yfinance数据获取成功: 价格={fd.price:.2f}, DY={fd.dividend_yield:.2%}")
+                except Exception as e:
+                    self.logger.warning(f"[{h.code}] yfinance获取失败: {e}")
+
+            # 都失败，用静态兜底
+            if fd is None:
                 if fallback:
-                    self.factor_data[h.code] = self._get_static_data(h.code)
+                    fd = self._get_static_data(h.code)
+                    data_source_stats["static"] += 1
                     self.logger.info(f"[{h.code}] 已切换至静态兜底数据")
                 else:
-                    self.factor_data[h.code] = FactorData(code=h.code, name=h.name)
-        self.logger.info("===== 数据获取完成 =====")
+                    fd = FactorData(code=h.code, name=h.name)
+
+            self.factor_data[h.code] = fd
+
+        self.logger.info(f"===== 数据获取完成: AKShare={data_source_stats['akshare']}成功, yfinance={data_source_stats['yfinance']}成功, 静态={data_source_stats['static']}兜底 =====")
+
+    def _fetch_yfinance_data(self, h: HoldingConfig) -> FactorData:
+        """通过yfinance获取数据（海外环境稳定备用）"""
+        fd = FactorData(code=h.code, name=h.name)
+        # yfinance A股代码格式：600036.SS（上海）或 000651.SZ（深圳）
+        # ETF代码格式：515450.SS
+        if h.exchange == "sh":
+            yf_code = h.code + ".SS"
+        elif h.exchange == "sz":
+            yf_code = h.code + ".SZ"
+        else:
+            yf_code = h.code + ".SS"  # 默认上海
+
+        end_date = datetime.now()
+        start_date = end_date - timedelta(days=400)
+
+        ticker = yf.Ticker(yf_code)
+        df_hist = ticker.history(start=start_date, end=end_date)
+
+        if df_hist is None or df_hist.empty:
+            raise ValueError(f"yfinance历史数据为空: {yf_code}")
+
+        fd.price = float(df_hist["Close"].iloc[-1])
+
+        # 计算波动率
+        returns = df_hist["Close"].pct_change().dropna()
+        fd.volatility_250d = float(returns.tail(min(250, len(returns))).std() * math.sqrt(252)) if len(returns) >= 20 else 0.20
+
+        # 获取分红数据
+        divs = ticker.dividends
+        if divs is not None and not divs.empty and len(divs) > 0:
+            # 取最近一年分红总和
+            one_year_ago = end_date - timedelta(days=365)
+            recent_divs = divs[divs.index >= one_year_ago]
+            total_div = float(recent_divs.sum())
+            fd.dividend_yield = total_div / fd.price if fd.price > 0 else 0.04
+        else:
+            # 从静态数据获取股息率
+            static = STATIC_FALLBACK_DATA.get(h.code)
+            fd.dividend_yield = static["dividend_yield"] if static else 0.04
+
+        # 获取基本信息（PE、ROE等）
+        info = ticker.info
+        if info:
+            fd.pe_ttm = float(info.get("trailingPE", 15.0) or 15.0)
+            fd.roe = float(info.get("returnOnEquity", 0.10) or 0.10)
+        else:
+            fd.pe_ttm = 15.0
+            fd.roe = 0.10
+
+        # 其他因子用估算值
+        fd.roe_std_3y = 0.01
+        fd.cashflow_to_debt = 0.30
+        fd.earnings_growth = 0.03
+        fd.net_profit_history = [None, None, None]
+        fd.operating_cashflow_history = [None, None, None]
+        fd.payout_ratio = 0.50
+        fd.is_st = False
+        fd.dividend_cut = False
+
+        return fd
 
     def _fetch_akshare_data(self, h: HoldingConfig) -> FactorData:
         fd = FactorData(code=h.code, name=h.name)
@@ -1320,15 +1413,20 @@ class DividendMonitor:
         lines.append("")
 
         lines.append("【分红与税务】")
-        for h in self.holdings:
-            if h.type == "cash":
-                continue
-            days = self.state["holding_days"].get(h.code, 0)
-            if days > 365:
-                lines.append(f"  {h.code} {h.name}: 持股{days}天，已满1年，分红免税")
-            else:
-                lines.append(f"  {h.code} {h.name}: 持股{days}天，距免税还有{365-days}天")
-        lines.append(f"  现金池余额: {self.state['cash_pool']:,.0f}元（半年度调仓时再投资）")
+        if self.is_first_run:
+            lines.append("  🆕 首次建仓中，持股天数为0，分红待建仓完成后开始计算")
+        else:
+            for h in self.holdings:
+                if h.type == "cash":
+                    continue
+                days = self.state["holding_days"].get(h.code, 0)
+                if days > 365:
+                    lines.append(f"  {h.code} {h.name}: 持股{days}天，已满1年，分红免税")
+                elif days > 0:
+                    lines.append(f"  {h.code} {h.name}: 持股{days}天，距免税还有{365-days}天")
+                else:
+                    lines.append(f"  {h.code} {h.name}: 尚未建仓")
+        lines.append(f"  现金池余额: {self.state['cash_pool']:,.0f}元（建仓完成后按ERP再投资）")
         lines.append("")
 
         lines.append("=" * 40)
