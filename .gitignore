@@ -1,0 +1,39 @@
+# ============================================
+# v8.1 红利策略监测 - Git忽略文件
+# ============================================
+
+# 持久化状态文件（运行后自动生成）
+monitor_state.json
+
+# 日志文件
+dividend_monitor.log
+*.log
+
+# Python缓存
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# 虚拟环境
+venv/
+env/
+ENV/
+
+# 环境变量文件
+.env
+.env.local
+
+# IDE配置
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 旧版脚本（不需要上传）
+scripts/
