@@ -268,6 +268,7 @@ class TradeSignal:
     action: str  # 'buy', 'sell', 'hold', 'clear', 'ddca_add'
     reason: str
     suggested_amount: float = 0.0
+    lots: int = 0  # v8.3: 建议买入/卖出股数（100股整数倍）
 
 
 # ============================================
@@ -503,6 +504,14 @@ class DividendMonitor:
             f"新浪={data_source_stats['sina']}成功, AKShare={data_source_stats['akshare']}成功, "
             f"静态={data_source_stats['static']}兜底 ====="
         )
+        # v8.3 数据源健康告警
+        live_total = data_source_stats["tencent"] + data_source_stats["sina"] + data_source_stats["akshare"]
+        holding_count = sum(1 for h in self.holdings if h.type != "cash")
+        if data_source_stats["static"] > 0 and live_total == 0:
+            self.logger.error("⚠️ 所有数据源均失败，全部使用静态兜底数据！评分可能不准确。")
+            self._push_wechat_error_alert("所有数据源均失败，使用静态兜底数据")
+        elif data_source_stats["static"] >= holding_count * 0.5:
+            self.logger.warning(f"⚠️ 超过一半标的({data_source_stats['static']}/{holding_count})使用静态数据")
 
     def _fetch_tencent_data(self, h: HoldingConfig) -> FactorData:
         """通过腾讯财经HTTP接口获取实时数据（v8.3首选数据源）"""
@@ -1325,7 +1334,7 @@ class DividendMonitor:
                 signals.append(TradeSignal(
                     code=h.code, name=h.name, action="buy",
                     reason=f"第1批建仓({batch1_pct:.0%})-评分{sr.total_score:.1f}",
-                    suggested_amount=actual_amount
+                    suggested_amount=actual_amount, lots=shares
                 ))
                 self.logger.info(f"[{h.code}] 第1批: {shares}股={actual_amount:,.0f}元")
 
@@ -1442,7 +1451,7 @@ class DividendMonitor:
                         signals.append(TradeSignal(
                             code=h.code, name=h.name, action="buy",
                             reason=f"第{batch_num}批建仓({this_batch_pct:.0%})-{trigger_reason}",
-                            suggested_amount=actual_amount
+                            suggested_amount=actual_amount, lots=shares
                         ))
                         self.logger.info(f"[{h.code}] 第{batch_num}批: {shares}股={actual_amount:,.0f}元")
 
@@ -1624,7 +1633,10 @@ class DividendMonitor:
         lines.append("")
 
         lines.append("【标的评分与仓位】")
+        holding_codes = {h.code for h in self.holdings if h.code != "CASH"}
         for code in sorted(self.score_results.keys()):
+            if code not in holding_codes:
+                continue
             sr = self.score_results[code]
             fd = self.factor_data.get(code)
             current_w = self.state["current_weights"].get(code, 0)
@@ -1656,6 +1668,8 @@ class DividendMonitor:
             for ts in all_signals:
                 icon = "🟢" if ts.action == "buy" else "🔴" if ts.action == "sell" or ts.action == "clear" else "🟡"
                 lines.append(f"  {icon} [{ts.action.upper()}] {ts.code} {ts.name}: {ts.reason}, 建议金额={ts.suggested_amount:,.0f}元")
+                if ts.lots > 0:
+                    lines.append(f"       ↳ 建议操作: {ts.lots}股")
         else:
             lines.append("  ⏸️ 无交易信号")
         lines.append("")
@@ -1777,7 +1791,7 @@ class DividendMonitor:
                     signals.append(TradeSignal(
                         code=best_code, name=best_name, action="buy",
                         reason=f"补位建仓({pool_name},冷却{cooling_days}天)-评分{best_score:.1f}",
-                        suggested_amount=actual_amount
+                        suggested_amount=actual_amount, lots=shares
                     ))
                     self.logger.info(f"[{best_code}] 补位信号: {shares}股={actual_amount:,.0f}元")
                     # 标记已处理
@@ -1788,6 +1802,18 @@ class DividendMonitor:
     # -------------------------------------------------
     # 2.10 企业微信推送
     # -------------------------------------------------
+    def _push_wechat_error_alert(self, error_msg: str):
+        """v8.3 企业微信报警：推送失败时通知用户"""
+        env_name = self.config.get("notification", {}).get("wechat_webhook_env", "WECHAT_WEBHOOK_URL")
+        webhook_url = os.environ.get(env_name)
+        if not webhook_url:
+            return
+        alert = f"⚠️ 红利策略监控异常\n时间: {datetime.now().strftime('%Y-%m-%d %H:%M')}\n原因: {error_msg}\n请检查GitHub Actions日志。"
+        try:
+            requests.post(webhook_url, json={"msgtype": "text", "text": {"content": alert}}, timeout=15)
+        except Exception:
+            pass  # 报警本身失败，放弃（避免递归）
+
     def push_wechat(self, content: str):
         env_name = self.config.get("notification", {}).get("wechat_webhook_env", "WECHAT_WEBHOOK_URL")
         webhook_url = os.environ.get(env_name)
@@ -1801,8 +1827,38 @@ class DividendMonitor:
             try:
                 resp = requests.post(webhook_url, json=payload, timeout=15)
                 self.logger.info(f"企业微信推送第{idx + 1}/{len(chunks)}段: HTTP{resp.status_code}")
+                if resp.status_code != 200:
+                    self.logger.warning(f"推送HTTP非200: {resp.text[:200]}")
             except Exception as e:
                 self.logger.error(f"企业微信推送失败: {e}")
+                self._push_wechat_error_alert(f"报告推送失败: {e}")
+
+    def _is_trading_day(self) -> bool:
+        """v8.3 判断当天是否为A股交易日（基于周末+交易日历）"""
+        today = datetime.now().strftime("%Y-%m-%d")
+        try:
+            dt = datetime.strptime(today, "%Y-%m-%d")
+            if dt.weekday() >= 5:
+                self.logger.info(f"今天是周末（{today}），跳过")
+                return False
+        except Exception:
+            pass
+        if AKSHARE_AVAILABLE:
+            try:
+                import akshare as ak
+                df = ak.tool_trade_date_hist_sina()
+                if df is not None and not df.empty:
+                    trading_dates = set(df.iloc[:, 0].astype(str).tolist())
+                    if today in trading_dates:
+                        self.logger.info(f"交易日历确认：{today} 为交易日")
+                        return True
+                    else:
+                        self.logger.info(f"交易日历确认：{today} 为非交易日（节假日），跳过")
+                        return False
+            except Exception as e:
+                self.logger.warning(f"交易日历获取失败，使用默认判断: {e}")
+        self.logger.info(f"交易日历不可用，默认工作日{today}为交易日")
+        return True
 
     # -------------------------------------------------
     # 2.11 主流程
@@ -1811,10 +1867,19 @@ class DividendMonitor:
         self.logger.info("========================================")
         self.logger.info("v8红利策略监测启动")
         self.logger.info("========================================")
+        # v8.3 非交易日跳过（避免无效运行）
+        if not self._is_trading_day():
+            # 首次运行时不跳过（确保建仓信号正常生成）
+            if not self.is_first_run:
+                self.logger.info("今天非交易日，脚本提前结束（不生成信号、不推送报告）")
+                return
+            else:
+                self.logger.info("今天非交易日但为首次运行，继续执行建仓信号生成")
         try:
             self.fetch_data()
         except Exception as e:
             self.logger.error(f"数据获取阶段异常: {e}\n{traceback.format_exc()}")
+            self._push_wechat_error_alert(f"数据获取阶段异常: {str(e)[:200]}")
             return
 
         try:
