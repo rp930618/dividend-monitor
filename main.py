@@ -92,13 +92,94 @@ STATIC_FALLBACK_DATA = {
         "operating_cashflow_history": [1500e8, 1600e8, 1700e8],
         "payout_ratio": 0.60, "is_st": False, "dividend_cut": False,
     },
-    "601006": {
-        "name": "大秦铁路", "price": 7.0, "dividend_yield": 0.058,
-        "roe": 0.09, "roe_std_3y": 0.010, "cashflow_to_debt": 0.22,
-        "pe_ttm": 7.5, "volatility_250d": 0.13, "earnings_growth": -0.01,
-        "net_profit_history": [120e8, 115e8, 110e8],
-        "operating_cashflow_history": [150e8, 140e8, 130e8],
-        "payout_ratio": 0.58, "is_st": False, "dividend_cut": False,
+    "600012": {
+        "name": "皖通高速", "price": 15.5, "dividend_yield": 0.042,
+        "roe": 0.14, "roe_std_3y": 0.008, "cashflow_to_debt": 0.35,
+        "pe_ttm": 13.7, "volatility_250d": 0.16, "earnings_growth": 0.12,
+        "net_profit_history": [14e8, 15.5e8, 18.77e8],
+        "operating_cashflow_history": [20e8, 22e8, 25e8],
+        "payout_ratio": 0.60, "is_st": False, "dividend_cut": False,
+    },
+    # 备选池标的静态数据（用于补位评分）
+    "000429": {
+        "name": "粤高速A", "price": 12.5, "dividend_yield": 0.048,
+        "roe": 0.168, "roe_std_3y": 0.010, "cashflow_to_debt": 0.40,
+        "pe_ttm": 13.6, "volatility_250d": 0.15, "earnings_growth": 0.15,
+        "net_profit_history": [14e8, 15e8, 18.01e8],
+        "operating_cashflow_history": [28e8, 30e8, 35e8],
+        "payout_ratio": 0.70, "is_st": False, "dividend_cut": False,
+    },
+    "600377": {
+        "name": "宁沪高速", "price": 13.8, "dividend_yield": 0.041,
+        "roe": 0.12, "roe_std_3y": 0.012, "cashflow_to_debt": 0.38,
+        "pe_ttm": 12.8, "volatility_250d": 0.14, "earnings_growth": 0.03,
+        "net_profit_history": [48e8, 49e8, 50.47e8],
+        "operating_cashflow_history": [60e8, 65e8, 67.62e8],
+        "payout_ratio": 0.54, "is_st": False, "dividend_cut": False,
+    },
+    "601288": {
+        "name": "农业银行", "price": 4.8, "dividend_yield": 0.053,
+        "roe": 0.102, "roe_std_3y": 0.005, "cashflow_to_debt": 0.30,
+        "pe_ttm": 6.6, "volatility_250d": 0.15, "earnings_growth": 0.03,
+        "net_profit_history": [2600e8, 2700e8, 2800e8],
+        "operating_cashflow_history": [4000e8, 4200e8, 4500e8],
+        "payout_ratio": 0.30, "is_st": False, "dividend_cut": False,
+    },
+    "600690": {
+        "name": "海尔智家", "price": 28.0, "dividend_yield": 0.053,
+        "roe": 0.17, "roe_std_3y": 0.015, "cashflow_to_debt": 0.40,
+        "pe_ttm": 10.0, "volatility_250d": 0.20, "earnings_growth": 0.04,
+        "net_profit_history": [140e8, 150e8, 160e8],
+        "operating_cashflow_history": [180e8, 200e8, 220e8],
+        "payout_ratio": 0.55, "is_st": False, "dividend_cut": False,
+    },
+    "601186": {
+        "name": "中国铁建", "price": 8.5, "dividend_yield": 0.043,
+        "roe": 0.08, "roe_std_3y": 0.008, "cashflow_to_debt": 0.15,
+        "pe_ttm": 4.5, "volatility_250d": 0.18, "earnings_growth": -0.05,
+        "net_profit_history": [220e8, 230e8, 210e8],
+        "operating_cashflow_history": [100e8, 80e8, 120e8],
+        "payout_ratio": 0.26, "is_st": False, "dividend_cut": False,
+    },
+    "600886": {
+        "name": "国投电力", "price": 14.0, "dividend_yield": 0.037,
+        "roe": 0.10, "roe_std_3y": 0.010, "cashflow_to_debt": 0.35,
+        "pe_ttm": 16.0, "volatility_250d": 0.15, "earnings_growth": 0.11,
+        "net_profit_history": [60e8, 65e8, 75e8],
+        "operating_cashflow_history": [100e8, 110e8, 130e8],
+        "payout_ratio": 0.55, "is_st": False, "dividend_cut": False,
+    },
+    "600887": {
+        "name": "伊利股份", "price": 28.0, "dividend_yield": 0.052,
+        "roe": 0.20, "roe_std_3y": 0.015, "cashflow_to_debt": 0.45,
+        "pe_ttm": 14.5, "volatility_250d": 0.20, "earnings_growth": 0.37,
+        "net_profit_history": [80e8, 85e8, 120e8],
+        "operating_cashflow_history": [100e8, 110e8, 140e8],
+        "payout_ratio": 0.75, "is_st": False, "dividend_cut": False,
+    },
+    "601728": {
+        "name": "中国电信", "price": 6.5, "dividend_yield": 0.052,
+        "roe": 0.09, "roe_std_3y": 0.006, "cashflow_to_debt": 0.50,
+        "pe_ttm": 15.0, "volatility_250d": 0.14, "earnings_growth": 0.01,
+        "net_profit_history": [300e8, 310e8, 330e8],
+        "operating_cashflow_history": [500e8, 520e8, 550e8],
+        "payout_ratio": 0.75, "is_st": False, "dividend_cut": False,
+    },
+    "600803": {
+        "name": "新奥股份", "price": 18.0, "dividend_yield": 0.051,
+        "roe": 0.19, "roe_std_3y": 0.020, "cashflow_to_debt": 0.40,
+        "pe_ttm": 14.8, "volatility_250d": 0.22, "earnings_growth": 0.08,
+        "net_profit_history": [40e8, 42e8, 46.81e8],
+        "operating_cashflow_history": [60e8, 65e8, 70e8],
+        "payout_ratio": 0.75, "is_st": False, "dividend_cut": False,
+    },
+    "601098": {
+        "name": "中南传媒", "price": 13.5, "dividend_yield": 0.050,
+        "roe": 0.10, "roe_std_3y": 0.008, "cashflow_to_debt": 0.50,
+        "pe_ttm": 12.7, "volatility_250d": 0.16, "earnings_growth": 0.03,
+        "net_profit_history": [14e8, 14.5e8, 15.94e8],
+        "operating_cashflow_history": [18e8, 19e8, 20e8],
+        "payout_ratio": 0.62, "is_st": False, "dividend_cut": False,
     },
     "000895": {
         "name": "双汇发展", "price": 26.0, "dividend_yield": 0.052,
@@ -315,9 +396,10 @@ class DividendMonitor:
     # 2.1 数据获取
     # -------------------------------------------------
     def fetch_data(self):
+        """v8.3 多源降级链数据获取：腾讯HTTP → 新浪HTTP → AKShare → 静态兜底"""
         self.logger.info("===== 开始数据获取 =====")
         fallback = self.config.get("data", {}).get("fallback_to_static", True)
-        data_source_stats = {"akshare": 0, "yfinance": 0, "static": 0}
+        data_source_stats = {"tencent": 0, "sina": 0, "akshare": 0, "static": 0}
         for h in self.holdings:
             if h.type == "cash":
                 self.factor_data[h.code] = self._get_static_data(h.code)
@@ -325,36 +407,176 @@ class DividendMonitor:
 
             fd = None
 
-            # 优先尝试AKShare（国内环境最佳）
+            # P1: 腾讯HTTP接口（零依赖、速度快、GitHub Actions跨境可用）
+            try:
+                fd = self._fetch_tencent_data(h)
+                if fd and fd.price > 0:
+                    data_source_stats["tencent"] += 1
+                    self.logger.info(f"[{h.code}] 腾讯HTTP数据获取成功: 价格={fd.price:.2f}")
+                    self.factor_data[h.code] = fd
+                    continue
+            except Exception as e:
+                self.logger.warning(f"[{h.code}] 腾讯HTTP获取失败: {e}")
+
+            # P2: 新浪HTTP接口（腾讯异常时降级）
+            try:
+                fd = self._fetch_sina_data(h)
+                if fd and fd.price > 0:
+                    data_source_stats["sina"] += 1
+                    self.logger.info(f"[{h.code}] 新浪HTTP数据获取成功: 价格={fd.price:.2f}")
+                    self.factor_data[h.code] = fd
+                    continue
+            except Exception as e:
+                self.logger.warning(f"[{h.code}] 新浪HTTP获取失败: {e}")
+
+            # P3: AKShare（需要历史数据或财务数据时）
             if AKSHARE_AVAILABLE:
                 try:
                     fd = self._fetch_akshare_data(h)
                     data_source_stats["akshare"] += 1
                     self.logger.info(f"[{h.code}] AKShare数据获取成功: 价格={fd.price:.2f}, DY={fd.dividend_yield:.2%}")
+                    self.factor_data[h.code] = fd
+                    continue
                 except Exception as e:
                     self.logger.warning(f"[{h.code}] AKShare获取失败: {e}")
 
-            # AKShare失败，尝试yfinance（海外环境稳定）
-            if fd is None and YFINANCE_AVAILABLE:
-                try:
-                    fd = self._fetch_yfinance_data(h)
-                    data_source_stats["yfinance"] += 1
-                    self.logger.info(f"[{h.code}] yfinance数据获取成功: 价格={fd.price:.2f}, DY={fd.dividend_yield:.2%}")
-                except Exception as e:
-                    self.logger.warning(f"[{h.code}] yfinance获取失败: {e}")
-
-            # 都失败，用静态兜底
-            if fd is None:
-                if fallback:
-                    fd = self._get_static_data(h.code)
-                    data_source_stats["static"] += 1
-                    self.logger.info(f"[{h.code}] 已切换至静态兜底数据")
-                else:
-                    fd = FactorData(code=h.code, name=h.name)
+            # P4: 静态兜底
+            if fallback:
+                fd = self._get_static_data(h.code)
+                data_source_stats["static"] += 1
+                self.logger.info(f"[{h.code}] 已切换至静态兜底数据")
+            else:
+                fd = FactorData(code=h.code, name=h.name)
 
             self.factor_data[h.code] = fd
 
-        self.logger.info(f"===== 数据获取完成: AKShare={data_source_stats['akshare']}成功, yfinance={data_source_stats['yfinance']}成功, 静态={data_source_stats['static']}兜底 =====")
+        # v8.3 备选池数据获取（用于补位评分）
+        alt_pool = self.config.get("alternatives_pool", {})
+        for code_key, pool_info in alt_pool.items():
+            if code_key.startswith("_"):
+                continue
+            if not isinstance(pool_info, dict):
+                continue
+            for cand in pool_info.get("candidates", []):
+                ccode = cand["code"]
+                if ccode in self.factor_data:
+                    continue
+                cfd = FactorData(code=ccode, name=cand["name"])
+                cex = cand.get("exchange", "sh")
+                prefix = "sh" if cex == "sh" else "sz"
+                try:
+                    url = f"http://qt.gtimg.cn/q={prefix}{ccode}"
+                    r = requests.get(url, timeout=10)
+                    r.encoding = "GBK"
+                    for line in r.text.strip().split(";"):
+                        if not line.strip():
+                            continue
+                        if line.startswith("v_"):
+                            data = line.split('"')[1]
+                            parts = data.split("~")
+                            if len(parts) < 40:
+                                continue
+                            cfd.price = float(parts[3]) if parts[3] else 0
+                            static = STATIC_FALLBACK_DATA.get(ccode, {})
+                            cfd.dividend_yield = static.get("dividend_yield", 0.04)
+                            cfd.roe = static.get("roe", 0.10)
+                            cfd.roe_std_3y = static.get("roe_std_3y", 0.01)
+                            cfd.cashflow_to_debt = static.get("cashflow_to_debt", 0.30)
+                            cfd.pe_ttm = static.get("pe_ttm", 15.0)
+                            cfd.volatility_250d = static.get("volatility_250d", 0.18)
+                            cfd.earnings_growth = static.get("earnings_growth", 0.03)
+                            cfd.net_profit_history = static.get("net_profit_history", [None, None, None])
+                            cfd.operating_cashflow_history = static.get("operating_cashflow_history", [None, None, None])
+                            cfd.payout_ratio = static.get("payout_ratio", 0.50)
+                            cfd.is_st = static.get("is_st", False)
+                            cfd.dividend_cut = static.get("dividend_cut", False)
+                            self.factor_data[ccode] = cfd
+                            break
+                except Exception as e:
+                    self.logger.debug(f"备选池[{ccode}]数据获取失败: {e}")
+                    static = STATIC_FALLBACK_DATA.get(ccode)
+                    if static:
+                        self.factor_data[ccode] = self._get_static_data(ccode)
+
+        self.logger.info(
+            f"===== 数据获取完成: 腾讯={data_source_stats['tencent']}成功, "
+            f"新浪={data_source_stats['sina']}成功, AKShare={data_source_stats['akshare']}成功, "
+            f"静态={data_source_stats['static']}兜底 ====="
+        )
+
+    def _fetch_tencent_data(self, h: HoldingConfig) -> FactorData:
+        """通过腾讯财经HTTP接口获取实时数据（v8.3首选数据源）"""
+        fd = FactorData(code=h.code, name=h.name)
+        prefix = "sh" if h.exchange == "sh" else "sz"
+        tencent_code = f"{prefix}{h.code}"
+
+        url = f"http://qt.gtimg.cn/q={tencent_code}"
+        r = requests.get(url, timeout=10)
+        r.encoding = "GBK"
+
+        for line in r.text.strip().split(";"):
+            if not line.strip():
+                continue
+            if line.startswith("v_"):
+                data = line.split('"')[1]
+                parts = data.split("~")
+                if len(parts) < 40:
+                    continue
+                fd.price = float(parts[3]) if parts[3] else 0
+                fd.pe_ttm = float(parts[52]) if parts[52] and parts[52] != "" else 15.0
+                # 腾讯接口不含ROE和股息率，用静态数据补充
+                static = STATIC_FALLBACK_DATA.get(h.code, {})
+                fd.dividend_yield = static.get("dividend_yield", 0.04)
+                fd.roe = static.get("roe", 0.10)
+                fd.roe_std_3y = static.get("roe_std_3y", 0.01)
+                fd.cashflow_to_debt = static.get("cashflow_to_debt", 0.30)
+                fd.volatility_250d = static.get("volatility_250d", 0.18)
+                fd.earnings_growth = static.get("earnings_growth", 0.03)
+                fd.net_profit_history = static.get("net_profit_history", [None, None, None])
+                fd.operating_cashflow_history = static.get("operating_cashflow_history", [None, None, None])
+                fd.payout_ratio = static.get("payout_ratio", 0.50)
+                fd.is_st = static.get("is_st", False)
+                fd.dividend_cut = static.get("dividend_cut", False)
+                return fd
+        raise RuntimeError(f"腾讯接口返回格式异常: {tencent_code}")
+
+    def _fetch_sina_data(self, h: HoldingConfig) -> FactorData:
+        """通过新浪财经HTTP接口获取实时数据（v8.3备用数据源）"""
+        fd = FactorData(code=h.code, name=h.name)
+        prefix = "sh" if h.exchange == "sh" else "sz"
+        sina_code = f"{prefix}{h.code}"
+
+        url = f"https://hq.sinajs.cn/list={sina_code}"
+        headers = {"Referer": "https://finance.sina.com.cn"}
+        r = requests.get(url, headers=headers, timeout=10)
+        r.encoding = "GB18030"
+
+        import re
+        m = re.search(rf'var hq_str_{sina_code}="([^"]+)"', r.text)
+        if not m:
+            raise RuntimeError(f"新浪接口返回格式异常: {sina_code}")
+
+        data = m.group(1)
+        parts = data.split(",")
+        if len(parts) < 10:
+            raise RuntimeError(f"新浪接口数据字段不足: {sina_code}")
+
+        fd.price = float(parts[3]) if parts[3] else 0
+        # 新浪接口不含财务数据，用静态数据补充
+        static = STATIC_FALLBACK_DATA.get(h.code, {})
+        fd.dividend_yield = static.get("dividend_yield", 0.04)
+        fd.roe = static.get("roe", 0.10)
+        fd.roe_std_3y = static.get("roe_std_3y", 0.01)
+        fd.cashflow_to_debt = static.get("cashflow_to_debt", 0.30)
+        fd.pe_ttm = static.get("pe_ttm", 15.0)
+        fd.volatility_250d = static.get("volatility_250d", 0.18)
+        fd.earnings_growth = static.get("earnings_growth", 0.03)
+        fd.net_profit_history = static.get("net_profit_history", [None, None, None])
+        fd.operating_cashflow_history = static.get("operating_cashflow_history", [None, None, None])
+        fd.payout_ratio = static.get("payout_ratio", 0.50)
+        fd.is_st = static.get("is_st", False)
+        fd.dividend_cut = static.get("dividend_cut", False)
+        return fd
 
     def _fetch_yfinance_data(self, h: HoldingConfig) -> FactorData:
         """通过yfinance获取数据（海外环境稳定备用）"""
@@ -544,12 +766,29 @@ class DividendMonitor:
         for code, fd in self.factor_data.items():
             if fd.code == "CASH":
                 continue
+            # v8.3 新增维度计算
+            # 股息可持续性：理想分红率30%-70%，>80%或<10%扣分
+            payout = fd.payout_ratio if fd.payout_ratio > 0 else 0.50
+            dividend_quality = 1.0 - max(0, payout - 0.70) * 3.0  # >70%开始扣分
+            dividend_quality = max(0.1, dividend_quality) if payout > 0.10 else 0.1
+            # 经营现金流趋势：有历史数据则计算，否则中性
+            cf_hist = [x for x in (fd.operating_cashflow_history or []) if x is not None]
+            if len(cf_hist) >= 2:
+                cashflow_trend = 1.0 if cf_hist[-1] > cf_hist[0] else 0.3
+            else:
+                cashflow_trend = 0.6  # 中性
+            # 行业景气度：暂无可用的行业数据，给中性分
+            industry_momentum = 0.55
+
             raw_factors.append({
                 "code": code, "dividend_yield": fd.dividend_yield,
                 "roe": fd.roe, "roe_stability": 1.0 / (1.0 + fd.roe_std_3y * 10),
                 "cashflow_to_debt": fd.cashflow_to_debt,
                 "pe_valuation": fd.pe_ttm, "volatility": fd.volatility_250d,
                 "earnings_growth": fd.earnings_growth,
+                "cashflow_trend": cashflow_trend,
+                "dividend_quality": dividend_quality,
+                "industry_momentum": industry_momentum,
             })
 
         df_factors = pd.DataFrame(raw_factors)
@@ -557,7 +796,8 @@ class DividendMonitor:
             self.logger.warning("因子数据为空，跳过评分")
             return
 
-        numeric_cols = ["dividend_yield", "roe", "roe_stability", "cashflow_to_debt", "pe_valuation", "volatility", "earnings_growth"]
+        numeric_cols = ["dividend_yield", "roe", "roe_stability", "cashflow_to_debt", "pe_valuation", "volatility",
+                        "earnings_growth", "cashflow_trend", "dividend_quality", "industry_momentum"]
         for col in numeric_cols:
             df_factors[col] = pd.to_numeric(df_factors[col], errors="coerce").fillna(df_factors[col].median())
 
@@ -565,7 +805,8 @@ class DividendMonitor:
             low, high = df_factors[col].quantile([win_low, win_high])
             df_factors[col] = df_factors[col].clip(lower=low, upper=high)
 
-        zscore_cols = ["dividend_yield", "roe", "roe_stability", "cashflow_to_debt", "earnings_growth"]
+        zscore_cols = ["dividend_yield", "roe", "roe_stability", "cashflow_to_debt", "earnings_growth",
+                       "cashflow_trend", "dividend_quality", "industry_momentum"]
         for col in zscore_cols:
             mean = df_factors[col].mean()
             std = df_factors[col].std()
@@ -583,13 +824,16 @@ class DividendMonitor:
             code = row["code"]
             fd = self.factor_data[code]
             scores = {}
-            scores["dividend_yield"] = self._zscore_to_score(row["dividend_yield_z"]) * weights.get("dividend_yield", 25) / 100
-            scores["roe_level"] = self._zscore_to_score(row["roe_z"]) * weights.get("roe_level", 20) / 100
-            scores["roe_stability"] = self._zscore_to_score(row["roe_stability_z"]) * weights.get("roe_stability", 15) / 100
+            scores["dividend_yield"] = self._zscore_to_score(row["dividend_yield_z"]) * weights.get("dividend_yield", 15) / 100
+            scores["roe_level"] = self._zscore_to_score(row["roe_z"]) * weights.get("roe_level", 10) / 100
+            scores["roe_stability"] = self._zscore_to_score(row["roe_stability_z"]) * weights.get("roe_stability", 10) / 100
             scores["cashflow_to_debt"] = self._zscore_to_score(row["cashflow_to_debt_z"]) * weights.get("cashflow_to_debt", 15) / 100
             scores["pe_valuation"] = self._zscore_to_score(row["pe_valuation_z"]) * weights.get("pe_valuation", 10) / 100
-            scores["low_volatility"] = self._zscore_to_score(row["volatility_z"]) * weights.get("low_volatility", 10) / 100
-            scores["earnings_growth"] = self._zscore_to_score(row["earnings_growth_z"]) * weights.get("earnings_growth", 5) / 100
+            scores["low_volatility"] = self._zscore_to_score(row["volatility_z"]) * weights.get("low_volatility", 5) / 100
+            scores["earnings_growth"] = self._zscore_to_score(row["earnings_growth_z"]) * weights.get("earnings_growth", 15) / 100
+            scores["cashflow_trend"] = self._zscore_to_score(row["cashflow_trend_z"]) * weights.get("cashflow_trend", 5) / 100
+            scores["dividend_quality"] = self._zscore_to_score(row["dividend_quality_z"]) * weights.get("dividend_quality", 10) / 100
+            scores["industry_momentum"] = self._zscore_to_score(row["industry_momentum_z"]) * weights.get("industry_momentum", 5) / 100
 
             total = sum(scores.values())
             total = max(0.0, min(100.0, total * 100))
@@ -1438,6 +1682,110 @@ class DividendMonitor:
         return "\n".join(lines)
 
     # -------------------------------------------------
+    # 2.10 清仓补位机制（v8.3 新增）
+    # -------------------------------------------------
+    def _check_replacement(self) -> List[TradeSignal]:
+        """v8.3 清仓补位机制：冷却期 + alternatives_pool备选池筛选"""
+        signals = []
+        rp = self.config.get("replacement_policy", {})
+        if not rp.get("enabled", False):
+            return signals
+
+        cooling_days = rp.get("cooling_off_days", 7)
+        today = datetime.now().strftime("%Y-%m-%d")
+        alt_pool = self.config.get("alternatives_pool", {})
+
+        # 获取最近被清仓的标的
+        cleared_codes = [s.code for s in self.risk_signals if s.signal_type == "clear"]
+        if not cleared_codes:
+            return signals
+
+        for code in cleared_codes:
+            # 检查是否已在冷却期中
+            cooling_key = f"replacement_cooling_{code}"
+            if cooling_key not in self.state:
+                self.state[cooling_key] = {"start_date": today, "days": 0}
+                self.logger.info(f"[{code}] 触发清仓补位冷却期，持续{cooling_days}个交易日")
+                continue
+
+            # 已完成的不再处理
+            if self.state[cooling_key].get("completed"):
+                continue
+
+            self.state[cooling_key]["days"] += 1
+            elapsed = self.state[cooling_key]["days"]
+
+            if elapsed < cooling_days:
+                self.logger.info(f"[{code}] 补位冷却期中 ({elapsed}/{cooling_days}天)")
+                continue
+
+            # 冷却期结束，从alternatives_pool获取对应备选
+            self.logger.info(f"[{code}] 冷却期结束，开始评估备选池候选标的")
+            entry = rp.get("entry_conditions", {})
+            min_score_ratio = entry.get("min_score_ratio", 0.95)
+            min_dy_ratio = entry.get("min_dividend_yield_ratio", 0.80)
+
+            # 获取被清仓标的的参考数据
+            cleared_fd = self.factor_data.get(code)
+            cleared_dy = cleared_fd.dividend_yield if cleared_fd else 0.04
+            min_score = min(
+                (self.score_results.get(h.code).total_score for h in self.holdings if h.code in self.score_results),
+                default=50
+            ) * min_score_ratio
+
+            # 优先从被清仓标的的专属备选池中筛选
+            pool_sources = []
+            if code in alt_pool:
+                pool_sources.append((f"专属备选池({code})", alt_pool[code].get("candidates", [])))
+            # 若专属池无合格标的，再查通用备选池
+            if "_general" in alt_pool:
+                pool_sources.append(("通用备选池", alt_pool["_general"].get("candidates", [])))
+
+            candidates = []
+            for pool_name, cand_list in pool_sources:
+                for wc in cand_list:
+                    wc_code = wc["code"]
+                    if wc_code in [h.code for h in self.holdings]:
+                        continue  # 已在持仓中
+                    wc_fd = self.factor_data.get(wc_code)
+                    wc_sr = self.score_results.get(wc_code)
+                    if not wc_fd or not wc_sr:
+                        continue
+                    if wc_sr.total_score < min_score:
+                        continue
+                    if wc_fd.dividend_yield < cleared_dy * min_dy_ratio:
+                        continue
+                    candidates.append((wc_code, wc["name"], wc_sr.total_score, wc_fd, pool_name))
+                if candidates:
+                    break  # 当前池已有合格标的，不再查下一池
+
+            if not candidates:
+                self.logger.info(f"[{code}] 备选池中无合格补位标的，资金进入现金池")
+                continue
+
+            # 按评分排序，取最高分
+            candidates.sort(key=lambda x: x[2], reverse=True)
+            best_code, best_name, best_score, best_fd, pool_name = candidates[0]
+
+            # 计算补位金额（继承被清仓标的的目标金额）
+            cleared_holding = next((h for h in self.holdings if h.code == code), None)
+            if cleared_holding:
+                replace_amount = cleared_holding.target_amount * 0.30  # 首批补30%
+                shares = int(replace_amount / best_fd.price / 100) * 100 if best_fd.price > 0 else 0
+                actual_amount = shares * best_fd.price if shares > 0 else 0
+                if actual_amount > 0:
+                    signals.append(TradeSignal(
+                        code=best_code, name=best_name, action="buy",
+                        reason=f"补位建仓({pool_name},冷却{cooling_days}天)-评分{best_score:.1f}",
+                        suggested_amount=actual_amount
+                    ))
+                    self.logger.info(f"[{best_code}] 补位信号: {shares}股={actual_amount:,.0f}元")
+                    # 标记已处理
+                    self.state[cooling_key]["completed"] = True
+
+        return signals
+
+    # -------------------------------------------------
     # 2.10 企业微信推送
     # -------------------------------------------------
     def push_wechat(self, content: str):
@@ -1499,6 +1847,13 @@ class DividendMonitor:
                 reb_signals = self.check_rebalance()
                 ddca_signals = self.check_ddca()
                 self.trade_signals = reb_signals + ddca_signals
+
+                # v8.3 清仓补位检查
+                try:
+                    replacement_signals = self._check_replacement()
+                    self.trade_signals.extend(replacement_signals)
+                except Exception as e:
+                    self.logger.error(f"补位机制异常: {e}")
         except Exception as e:
             self.logger.error(f"信号生成异常: {e}\n{traceback.format_exc()}")
 
