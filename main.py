@@ -1251,9 +1251,13 @@ class DividendMonitor:
         max_add = ddca.get("max_add_pct_per_trade", 0.10)
         total = self.config.get("total_capital", 405000)
         today_str = datetime.now().strftime("%Y-%m-%d")
-        # v8.3-fix: 计算当前可用现金（预留20%缓冲）
+        # v8.3-fix: 计算当前可用现金 = 目标现金 + 累计分红池
+        # 分红就是现金，与现金池合并管理，DDCA触发时自动使用
         cash_holding = next((h for h in self.holdings if h.type == "cash"), None)
-        available_cash = cash_holding.target_amount * 0.80 if cash_holding else total * 0.04
+        cash_target = cash_holding.target_amount if cash_holding else total * 0.05
+        div_pool = self.state.get("dividend_pool", 0.0)
+        available_cash = cash_target * 0.80 + div_pool
+        self.logger.info(f"可用资金: 现金池{cash_target*0.80:,.0f}元 + 分红池{div_pool:,.0f}元 = {available_cash:,.0f}元")
         if available_cash <= 0:
             self.logger.info("现金余额不足，跳过DDCA")
             return signals
