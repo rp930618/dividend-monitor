@@ -207,8 +207,8 @@ STATIC_FALLBACK_DATA = {
     },
 }
 
-# 模拟持股天数（实际应从交易记录读取，此处用配置起始日推算）
-HOLDING_START_DATE = datetime(2023, 7, 1)
+# v8.3-fix: strategy_start_date 改为运行时动态记录，存入 monitor_state.json
+# 不再使用硬编码日期，避免建仓期判断错误
 
 
 # ============================================
@@ -280,6 +280,7 @@ class DividendMonitor:
         self.config = self._load_config(config_path)
         self.setup_logging()
         self.logger = logging.getLogger("DividendMonitor")
+        self._latest_div_messages = []
         self.holdings: List[HoldingConfig] = []
         self._parse_holdings()
         self.factor_data: Dict[str, FactorData] = {}
@@ -303,6 +304,12 @@ class DividendMonitor:
             "last_comprehensive_check": None,  # "YYYY-MM-DD"
             "trading_day_counter": 0,          # 建仓后累计交易日
             "first_build_completed": False,    # 首次建仓是否完成
+            "strategy_start_date": None,       # v8.3-fix: 策略首次运行日期（YYYY-MM-DD）
+            # === v8.3 分红跟踪 ===
+            "dividend_events": [],              # [{code, name, record_date, ex_date, pay_date, per_share, lots, amount, confirmed}]
+            "dividend_pool": 0.0,               # 累计已确认到账的分红总额
+            "last_prices": {},                  # code -> 上一交易日收盘价（用于检测除息跳空）
+            "ex_dividend_detected": {},        # code -> "YYYY-MM-DD"（当天检测到除息，避免DDCA误触发）
         }
         self.is_first_run = not (self.script_dir / "monitor_state.json").exists()
         self._init_state()
@@ -349,6 +356,10 @@ class DividendMonitor:
 
     def _init_state(self):
         is_fresh_start = self.is_first_run
+        # v8.3-fix: 记录策略启动日期
+        if is_fresh_start:
+            self.state["strategy_start_date"] = datetime.now().strftime("%Y-%m-%d")
+            self.logger.info(f"【首次运行】记录策略启动日期: {self.state['strategy_start_date']}")
         for h in self.holdings:
             self.state["last_reduce_date"][h.code] = None
             self.state["observation_until"][h.code] = None
@@ -356,7 +367,12 @@ class DividendMonitor:
             if is_fresh_start:
                 self.state["holding_days"][h.code] = 0
             elif h.code not in self.state["holding_days"]:
-                self.state["holding_days"][h.code] = max(0, (datetime.now() - HOLDING_START_DATE).days)
+                start_date_str = self.state.get("strategy_start_date")
+                if start_date_str:
+                    start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+                    self.state["holding_days"][h.code] = max(0, (datetime.now() - start_dt).days)
+                else:
+                    self.state["holding_days"][h.code] = 0
 
     # -------------------------------------------------
     # 2.0 持久化状态管理（估值历史等）
@@ -369,7 +385,8 @@ class DividendMonitor:
                     persistent = json.load(f)
                 for key in ["valuation_history", "deviation_streaks", "l1_cooldown_until",
                             "level2_streak", "level2_direction", "last_comprehensive_check",
-                            "trading_day_counter"]:
+                            "trading_day_counter", "strategy_start_date", "first_build_completed",
+                            "dividend_events", "dividend_pool", "ex_dividend_detected"]:
                     if key in persistent:
                         self.state[key] = persistent[key]
                 self.logger.info(f"已加载持久化状态: {len(self.state['valuation_history'])}条估值历史")
@@ -387,6 +404,11 @@ class DividendMonitor:
                 "level2_direction": self.state["level2_direction"],
                 "last_comprehensive_check": self.state["last_comprehensive_check"],
                 "trading_day_counter": self.state["trading_day_counter"],
+                "strategy_start_date": self.state.get("strategy_start_date"),
+                "first_build_completed": self.state.get("first_build_completed", False),
+                "dividend_events": self.state.get("dividend_events", []),
+                "dividend_pool": self.state.get("dividend_pool", 0.0),
+                "ex_dividend_detected": self.state.get("ex_dividend_detected", {}),
             }
             with open(state_file, "w", encoding="utf-8") as f:
                 json.dump(persistent, f, ensure_ascii=False, indent=2, default=str)
@@ -498,6 +520,40 @@ class DividendMonitor:
                     static = STATIC_FALLBACK_DATA.get(ccode)
                     if static:
                         self.factor_data[ccode] = self._get_static_data(ccode)
+
+        # v8.3-fix: 股息率校准 — 即使使用腾讯/新浪数据，也根据最新价格重新计算股息率
+        for h in self.holdings:
+            if h.type == "cash":
+                continue
+            fd = self.factor_data.get(h.code)
+            if not fd or fd.price <= 0:
+                continue
+            static = STATIC_FALLBACK_DATA.get(h.code, {})
+            static_price = static.get("price", 0)
+            static_dy = static.get("dividend_yield", 0.04)
+            if static_price > 0 and static_dy > 0:
+                # 每股分红 = 静态股息率 × 静态价格（假设分红金额不变）
+                div_per_share = static_dy * static_price
+                # 新股息率 = 每股分红 / 当前价格
+                adjusted_dy = div_per_share / fd.price
+                fd.dividend_yield = adjusted_dy
+                self.logger.info(f"[{h.code}] 股息率校准: {static_dy:.2%}(静态@{static_price:.2f}) → {adjusted_dy:.2%}(现价{fd.price:.2f})")
+
+        # v8.3-fix: ST/停牌检测 — 标记异常状态到factor_data
+        for h in self.holdings:
+            if h.type == "cash":
+                continue
+            fd = self.factor_data.get(h.code)
+            if not fd:
+                continue
+            is_st, is_suspended, status_desc = self._check_market_status(h.code, h.exchange)
+            fd.is_st = is_st
+            fd.is_suspended = is_suspended
+            if is_st or is_suspended:
+                self.logger.warning(f"[{h.code}] {h.name} 状态异常: {status_desc}")
+                # 触发ST或停牌时立即生成SELL信号
+                if is_st:
+                    fd.score_reasons.append("ST状态(立即清仓)")
 
         self.logger.info(
             f"===== 数据获取完成: 腾讯={data_source_stats['tencent']}成功, "
@@ -762,6 +818,152 @@ class DividendMonitor:
         return erp
 
     # -------------------------------------------------
+    # 2.1.5 分红事件检测（v8.3）
+    # -------------------------------------------------
+    def _check_dividend_events(self) -> List[str]:
+        """检测除息跳空：如果今日价格相比昨日大幅下跌（>2%）且不在大盘普跌日，
+        则可能为除息日。同时尝试从AKShare获取分红日历验证。"""
+        today = datetime.now().strftime("%Y-%m-%d")
+        messages = []
+        for h in self.holdings:
+            if h.type == "cash":
+                continue
+            fd = self.factor_data.get(h.code)
+            if not fd or fd.price <= 0:
+                continue
+            prev = self.state.get("last_prices", {}).get(h.code, 0)
+            if prev > 0 and fd.price < prev * 0.98:
+                # 检测到>2%的跳空下跌，可能是除息
+                gap_pct = (fd.price - prev) / prev * 100
+                # 尝试从AKShare获取分红日历确认
+                ex_div_info = self._fetch_ex_dividend_date(h.code)
+                if ex_div_info:
+                    ex_date, per_share = ex_div_info
+                    # 计算预期除息跌幅
+                    expected_gap = per_share / prev * 100
+                    if abs(gap_pct - (-expected_gap)) < 3:  # 误差3%内
+                        # 确认为除息日
+                        lots = self.state.get("current_weights", {}).get(h.code, 0)
+                        amount = per_share * (lots * 100) if lots > 0 else 0
+                        event = {
+                            "code": h.code, "name": h.name,
+                            "ex_date": today, "per_share": round(per_share, 4),
+                            "lots": lots, "amount": round(amount, 2),
+                            "confirmed": False,  # 需用户确认到账
+                        }
+                        self.state["dividend_events"].append(event)
+                        self.state["ex_dividend_detected"][h.code] = today
+                        msg = f"💰 检测到除息: {h.code} {h.name}，每股派{per_share:.4f}元"
+                        if amount > 0:
+                            msg += f"，预计到账{amount:.0f}元（待确认）"
+                        messages.append(msg)
+                        self.logger.info(msg)
+        # 保存今日收盘价供明日对比
+        for h in self.holdings:
+            if h.type == "cash":
+                continue
+            fd = self.factor_data.get(h.code)
+            if fd and fd.price > 0:
+                self.state["last_prices"][h.code] = fd.price
+        return messages
+
+    def _check_market_status(self, code: str, exchange: str) -> Tuple[bool, bool, str]:
+        """v8.3-fix: 检查股票交易状态 — 返回 (是否ST, 是否停牌, 状态描述)"""
+        is_st = False
+        is_suspended = False
+        status_desc = "正常"
+        # 尝试从AKShare获取实时状态
+        if AKSHARE_AVAILABLE:
+            try:
+                import akshare as ak
+                # 获取个股信息（含ST状态）
+                try:
+                    info_df = ak.stock_individual_info_em(symbol=code)
+                    if info_df is not None and not info_df.empty:
+                        for _, row in info_df.iterrows():
+                            if "ST" in str(row.get("股票简称", "")):
+                                is_st = True
+                                status_desc = f"ST状态({row.get('股票简称', '')})"
+                                break
+                except Exception:
+                    pass
+                # 检查今日是否停牌（通过分时数据成交量为0判断）
+                try:
+                    prefix = "sh" if exchange == "sh" else "sz"
+                    df_min = ak.stock_zh_a_spot_em()
+                    if df_min is not None and not df_min.empty:
+                        row = df_min[df_min["代码"] == code]
+                        if not row.empty:
+                            volume = float(row.iloc[0].get("成交量", 0))
+                            if volume == 0:
+                                is_suspended = True
+                                status_desc = "停牌(成交量为0)"
+                except Exception:
+                    pass
+            except Exception as e:
+                self.logger.debug(f"[{code}] 交易状态检测失败: {e}")
+        return is_st, is_suspended, status_desc
+
+    def _check_limit_up_down(self, code: str, exchange: str) -> Tuple[Optional[str], float]:
+        """v8.3-fix: 检查涨跌停状态 — 返回 (状态: 'up'/'down'/None, 涨跌幅%)"""
+        fd = self.factor_data.get(code)
+        if not fd or fd.price <= 0:
+            return None, 0.0
+        # 从腾讯接口获取昨日收盘价和涨跌幅
+        prefix = "sh" if exchange == "sh" else "sz"
+        try:
+            url = f"http://qt.gtimg.cn/q={prefix}{code}"
+            r = requests.get(url, timeout=8)
+            r.encoding = "GBK"
+            for line in r.text.strip().split(";"):
+                if line.startswith("v_"):
+                    data = line.split('"')[1]
+                    parts = data.split("~")
+                    if len(parts) >= 40:
+                        prev_close = float(parts[4]) if parts[4] else 0
+                        change_pct = float(parts[32]) if parts[32] else 0
+                        if prev_close > 0:
+                            # ST股±10%(2026.7起主板ST同普通股)，科创/创业±20%
+                            limit_pct = 0.20 if exchange in ["sz_kc", "sh_kc"] else 0.10
+                            if change_pct >= limit_pct * 100 - 0.1:
+                                return "up", change_pct
+                            if change_pct <= -limit_pct * 100 + 0.1:
+                                return "down", change_pct
+                        return None, change_pct
+        except Exception:
+            pass
+        return None, 0.0
+
+    def _fetch_ex_dividend_date(self, code: str):
+        """尝试从AKShare获取最近一次除权除息信息，返回(ex_date, per_share)或None"""
+        if not AKSHARE_AVAILABLE:
+            return None
+        try:
+            import akshare as ak
+            df = ak.stock_history_dividend_detail(indicator="分红", stock=code, date="")
+            if df is not None and not df.empty:
+                # 取最近一条记录（最新的分红）
+                row = df.iloc[0]
+                per_share = 0.0
+                # 尝试多个可能的列名
+                for col in ["派息(税前)(元)", "每股派息(税前)(元)"]:
+                    if col in df.columns:
+                        per_share = float(row[col])
+                        break
+                if per_share == 0:
+                    # 尝试解析文本
+                    val = str(row.get("分红方案", row.get("progress", "")))
+                    import re
+                    m = re.search(r'每股([\d.]+)元', val)
+                    if m:
+                        per_share = float(m.group(1))
+                if per_share > 0:
+                    return ("recent", per_share)
+        except Exception as e:
+            self.logger.warning(f"获取{code}分红数据失败: {e}")
+        return None
+
+    # -------------------------------------------------
     # 2.2 因子计算与评分
     # -------------------------------------------------
     def compute_factors_and_score(self):
@@ -951,13 +1153,18 @@ class DividendMonitor:
             if fd.roe < red.get("roe_below_threshold", 0.08):
                 reasons.append(f"ROE<{red.get('roe_below_threshold', 0.08):.0%}")
             np_hist = [x for x in fd.net_profit_history if x is not None]
-            if len(np_hist) >= 2:
+            consecutive_years = red.get("net_profit_consecutive_years", 2)
+            decline_pct = red.get("net_profit_decline_pct", 0.10)
+            # v8.3-fix: 修复检测方向 — 从最新数据往前检查连续下降
+            if len(np_hist) >= consecutive_years:
                 declines = 0
-                for i in range(1, min(red.get("net_profit_consecutive_years", 2), len(np_hist))):
-                    if np_hist[i] < np_hist[i - 1] * (1 - red.get("net_profit_decline_pct", 0.10)):
+                for i in range(consecutive_years - 1):
+                    if np_hist[i] < np_hist[i + 1] * (1 - decline_pct):
                         declines += 1
-                if declines >= red.get("net_profit_consecutive_years", 2) - 1:
-                    reasons.append(f"净利润连续下降>{red.get('net_profit_decline_pct', 0.10):.0%}")
+                    else:
+                        break  # 不连续，立即停止
+                if declines >= consecutive_years - 1:
+                    reasons.append(f"净利润连续下降>{decline_pct:.0%}")
             cf_hist = [x for x in fd.operating_cashflow_history if x is not None]
             neg_years = sum(1 for x in cf_hist if x < 0)
             if neg_years >= red.get("operating_cashflow_consecutive_years", 2):
@@ -1043,15 +1250,33 @@ class DividendMonitor:
         drop_trigger = ddca.get("monthly_drop_trigger", 0.03)
         max_add = ddca.get("max_add_pct_per_trade", 0.10)
         total = self.config.get("total_capital", 405000)
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        # v8.3-fix: 计算当前可用现金（预留20%缓冲）
+        cash_holding = next((h for h in self.holdings if h.type == "cash"), None)
+        available_cash = cash_holding.target_amount * 0.80 if cash_holding else total * 0.04
+        if available_cash <= 0:
+            self.logger.info("现金余额不足，跳过DDCA")
+            return signals
 
         for h in self.holdings:
             if h.type == "cash":
                 continue
+            # v8.3: 除息日跳过DDCA（除息导致股息率虚高误触发）
+            if self.state.get("ex_dividend_detected", {}).get(h.code) == today_str:
+                self.logger.info(f"[{h.code}] 今日除息日，跳过DDCA")
+                continue
+            # v8.3-fix: 停牌/ST跳过DDCA
             fd = self.factor_data.get(h.code)
             if fd is None:
                 continue
+            if fd.is_st or fd.is_suspended:
+                self.logger.info(f"[{h.code}] ST/停牌状态，跳过DDCA")
+                continue
             if fd.dividend_yield >= dy_trigger:
-                add_amount = min(max_add * total, total * 0.10)
+                add_amount = min(max_add * total, available_cash / max(len(signals) + 1, 1))
+                if add_amount < 1000:
+                    self.logger.info(f"[{h.code}] DDCA建议金额{add_amount:.0f}元过低，跳过")
+                    continue
                 signals.append(TradeSignal(
                     code=h.code, name=h.name, action="ddca_add",
                     reason=f"DY={fd.dividend_yield:.2%} >= {dy_trigger:.1%}，触发被动补仓",
@@ -1062,7 +1287,10 @@ class DividendMonitor:
 
             drop = self._calc_monthly_drop(h.code)
             if drop <= -drop_trigger:
-                add_amount = min(max_add * total, total * 0.10)
+                add_amount = min(max_add * total, available_cash / max(len(signals) + 1, 1))
+                if add_amount < 1000:
+                    self.logger.info(f"[{h.code}] DDCA建议金额{add_amount:.0f}元过低，跳过")
+                    continue
                 signals.append(TradeSignal(
                     code=h.code, name=h.name, action="ddca_add",
                     reason=f"月跌幅={drop:.2%} >= {drop_trigger:.1%}，触发被动补仓",
@@ -1478,7 +1706,13 @@ class DividendMonitor:
         rb = self.config.get("rebalance", {})
         today = datetime.now()
         build_months = rb.get("build_period_months", 3)
-        in_build = (today - HOLDING_START_DATE).days < build_months * 30
+        # v8.3-fix: 使用动态策略启动日期判断建仓期
+        start_date_str = self.state.get("strategy_start_date")
+        if start_date_str:
+            start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+            in_build = (today - start_dt).days < build_months * 30
+        else:
+            in_build = False
 
         # 每日更新估值历史
         self._update_valuation_history()
@@ -1689,6 +1923,19 @@ class DividendMonitor:
                 else:
                     lines.append(f"  {h.code} {h.name}: 尚未建仓")
         lines.append(f"  现金池余额: {self.state['cash_pool']:,.0f}元（建仓完成后按ERP再投资）")
+        # v8.3 分红跟踪摘要
+        div_pool = self.state.get("dividend_pool", 0)
+        div_events = self.state.get("dividend_events", [])
+        unconfirmed = [e for e in div_events if not e.get("confirmed")]
+        if div_pool > 0 or unconfirmed:
+            lines.append(f"  累计分红到账: {div_pool:,.0f}元" + (f" | 待确认: {len(unconfirmed)}笔" if unconfirmed else ""))
+            for e in unconfirmed[-3:]:  # 最近3笔未确认
+                lines.append(f"    ⏳ {e['code']} {e['name']}: {e['per_share']:.4f}元/股 × {e['lots']}股 = {e['amount']:,.0f}元（{e['ex_date']}除息，待确认到账）")
+        # 显示分红检测消息
+        if hasattr(self, '_latest_div_messages') and self._latest_div_messages:
+            lines.append("")
+            for m in self._latest_div_messages:
+                lines.append(f"  {m}")
         lines.append("")
 
         lines.append("=" * 40)
@@ -1886,6 +2133,14 @@ class DividendMonitor:
             self.compute_factors_and_score()
         except Exception as e:
             self.logger.error(f"评分计算阶段异常: {e}\n{traceback.format_exc()}")
+
+        # v8.3 分红事件检测
+        try:
+            div_messages = self._check_dividend_events()
+            self._latest_div_messages = div_messages
+        except Exception as e:
+            self.logger.warning(f"分红检测异常: {e}")
+            div_messages = []
 
         try:
             self.check_risk_control()
