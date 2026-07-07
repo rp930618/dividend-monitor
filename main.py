@@ -386,7 +386,8 @@ class DividendMonitor:
                 for key in ["valuation_history", "deviation_streaks", "l1_cooldown_until",
                             "level2_streak", "level2_direction", "last_comprehensive_check",
                             "trading_day_counter", "strategy_start_date", "first_build_completed",
-                            "dividend_events", "dividend_pool", "ex_dividend_detected"]:
+                            "dividend_events", "dividend_pool", "ex_dividend_detected",
+                            "holding_days", "current_weights", "build_batches", "last_prices"]:
                     if key in persistent:
                         self.state[key] = persistent[key]
                 self.logger.info(f"已加载持久化状态: {len(self.state['valuation_history'])}条估值历史")
@@ -409,6 +410,10 @@ class DividendMonitor:
                 "dividend_events": self.state.get("dividend_events", []),
                 "dividend_pool": self.state.get("dividend_pool", 0.0),
                 "ex_dividend_detected": self.state.get("ex_dividend_detected", {}),
+                "holding_days": self.state.get("holding_days", {}),
+                "current_weights": self.state.get("current_weights", {}),
+                "build_batches": self.state.get("build_batches", {}),
+                "last_prices": self.state.get("last_prices", {}),
             }
             with open(state_file, "w", encoding="utf-8") as f:
                 json.dump(persistent, f, ensure_ascii=False, indent=2, default=str)
