@@ -1,0 +1,48 @@
+{
+  "valuation_history": [],
+  "deviation_streaks": {},
+  "l1_cooldown_until": {},
+  "level2_streak": 0,
+  "level2_direction": null,
+  "last_comprehensive_check": null,
+  "trading_day_counter": 0,
+  "strategy_start_date": "2026-07-07",
+  "first_build_completed": false,
+  "dividend_events": [],
+  "dividend_pool": 0.0,
+  "ex_dividend_detected": {},
+  "holding_days": {
+    "600036": 0,
+    "000651": 0,
+    "601668": 0,
+    "600900": 0,
+    "000895": 0,
+    "515450": 0,
+    "600941": 0,
+    "600377": 0,
+    "CASH": 0
+  },
+  "current_weights": {
+    "600036": 0.2,
+    "000651": 0.13,
+    "601668": 0.1,
+    "600900": 0.11,
+    "000895": 0.11,
+    "515450": 0.11,
+    "600941": 0.09,
+    "600377": 0.1,
+    "CASH": 0.050000000000000044
+  },
+  "build_batches": {},
+  "last_prices": {
+    "600036": 37.55,
+    "000651": 38.4,
+    "601668": 4.48,
+    "600900": 27.41,
+    "000895": 23.2,
+    "515450": 1.354,
+    "600941": 88.42,
+    "600377": 12.31
+  },
+  "build_state": {}
+}
