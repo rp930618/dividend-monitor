@@ -1,59 +1,104 @@
 {
-  "valuation_history": [
-    {
-      "date": "2026-07-07",
-      "portfolio_pe": 12.0288,
-      "portfolio_dy": 0.0491
-    },
-    {
-      "date": "2026-07-07",
-      "portfolio_pe": 12.0288,
-      "portfolio_dy": 0.0491
-    }
-  ],
+  "valuation_history": [],
   "deviation_streaks": {},
   "l1_cooldown_until": {},
   "level2_streak": 0,
-  "level2_direction": null,
-  "last_comprehensive_check": null,
-  "trading_day_counter": 2,
-  "strategy_start_date": null,
+  "level2_direction": "",
+  "last_comprehensive_check": "2026-07-06",
+  "trading_day_counter": 1,
+  "strategy_start_date": "2026-07-06",
   "first_build_completed": false,
   "dividend_events": [],
   "dividend_pool": 0.0,
   "ex_dividend_detected": {},
   "holding_days": {
-    "600036": 0,
-    "000651": 0,
-    "601668": 0,
+    "600036": 1,
+    "000651": 1,
+    "601668": 1,
+    "600941": 1,
+    "600377": 1,
     "600900": 0,
     "000895": 0,
-    "515450": 0,
-    "600941": 0,
-    "600377": 0,
-    "CASH": 0
+    "515450": 0
   },
   "current_weights": {
-    "600036": 0.2,
-    "000651": 0.13,
-    "601668": 0.1,
-    "600900": 0.11,
-    "000895": 0.11,
-    "515450": 0.11,
-    "600941": 0.09,
-    "600377": 0.1,
-    "CASH": 0.050000000000000044
+    "600036": 0.0556,
+    "000651": 0.0379,
+    "601668": 0.0299,
+    "600941": 0.0218,
+    "600377": 0.0275,
+    "600900": 0.0,
+    "000895": 0.0,
+    "515450": 0.0,
+    "CASH": 0.8273
   },
-  "build_batches": {},
+  "build_batches": {
+    "600036": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "000651": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "601668": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "600941": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "600377": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "600900": {
+      "batch": 0,
+      "completed": false,
+      "date": null
+    },
+    "000895": {
+      "batch": 0,
+      "completed": false,
+      "date": null
+    },
+    "515450": {
+      "batch": 0,
+      "completed": false,
+      "date": null
+    }
+  },
   "last_prices": {
-    "600036": 37.55,
-    "000651": 38.4,
-    "601668": 4.48,
+    "600036": 37.51,
+    "000651": 38.42,
+    "601668": 4.49,
+    "600941": 88.36,
+    "600377": 12.36,
     "600900": 27.41,
     "000895": 23.2,
-    "515450": 1.354,
-    "600941": 88.42,
-    "600377": 12.31
+    "515450": 1.354
   },
-  "build_state": {}
+  "build_state": {
+    "current_batch": 1,
+    "build_start_date": "2026-07-06",
+    "build_day_counter": 1,
+    "completed_batches": {
+      "1": true
+    },
+    "first_batch_prices": {
+      "600036": 37.51,
+      "000651": 38.42,
+      "601668": 4.49,
+      "600941": 88.36,
+      "600377": 12.36
+    },
+    "paused_codes": {},
+    "last_signal_date": ""
+  }
 }
