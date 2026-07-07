@@ -3,7 +3,9 @@
 # ============================================
 
 # 持久化状态文件（运行后自动生成）
-monitor_state.json
+# v8.3-fix: monitor_state.json 必须被git跟踪，否则GitHub Actions每次运行都丢失状态
+# 如不希望本地修改被提交，可使用: git update-index --skip-worktree monitor_state.json
+# monitor_state.json
 
 # 日志文件
 dividend_monitor.log
