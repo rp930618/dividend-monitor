@@ -241,7 +241,9 @@ class FactorData:
     operating_cashflow_history: List[Optional[float]] = field(default_factory=list)
     payout_ratio: float = 0.0
     is_st: bool = False
+    is_suspended: bool = False
     dividend_cut: bool = False
+    score_reasons: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -387,7 +389,8 @@ class DividendMonitor:
                             "level2_streak", "level2_direction", "last_comprehensive_check",
                             "trading_day_counter", "strategy_start_date", "first_build_completed",
                             "dividend_events", "dividend_pool", "ex_dividend_detected",
-                            "holding_days", "current_weights", "build_batches", "last_prices"]:
+                            "holding_days", "current_weights", "build_batches", "last_prices",
+                            "build_state"]:
                     if key in persistent:
                         self.state[key] = persistent[key]
                 self.logger.info(f"已加载持久化状态: {len(self.state['valuation_history'])}条估值历史")
@@ -414,6 +417,7 @@ class DividendMonitor:
                 "current_weights": self.state.get("current_weights", {}),
                 "build_batches": self.state.get("build_batches", {}),
                 "last_prices": self.state.get("last_prices", {}),
+                "build_state": self.state.get("build_state", {}),
             }
             with open(state_file, "w", encoding="utf-8") as f:
                 json.dump(persistent, f, ensure_ascii=False, indent=2, default=str)
@@ -1161,10 +1165,13 @@ class DividendMonitor:
             consecutive_years = red.get("net_profit_consecutive_years", 2)
             decline_pct = red.get("net_profit_decline_pct", 0.10)
             # v8.3-fix: 修复检测方向 — 从最新数据往前检查连续下降
+            # np_hist 数据顺序：[最早年, 中间年, 最新年]
+            # 检测"下降"：较新年份 < 较早年份 × (1 - decline_pct)
             if len(np_hist) >= consecutive_years:
                 declines = 0
                 for i in range(consecutive_years - 1):
-                    if np_hist[i] < np_hist[i + 1] * (1 - decline_pct):
+                    # np_hist[i+1] = 较新年份, np_hist[i] = 较早年份
+                    if np_hist[i + 1] < np_hist[i] * (1 - decline_pct):
                         declines += 1
                     else:
                         break  # 不连续，立即停止
@@ -1176,7 +1183,10 @@ class DividendMonitor:
                 reasons.append("经营现金流连续为负")
             if red.get("payout_with_earnings_decline", True):
                 if fd.payout_ratio > red.get("payout_ratio_threshold", 0.80):
-                    if np_hist and len(np_hist) >= 2 and np_hist[0] < np_hist[1]:
+                    # v8.3-fix: 检测盈利下降 — 从最新往前看
+                    # np_hist 数据顺序：[最早年, 中间年, 最新年]
+                    # 检测"下降"：最新年份 < 第二年最新年份
+                    if np_hist and len(np_hist) >= 2 and np_hist[-1] < np_hist[-2]:
                         reasons.append("分红率>80%且盈利下降")
 
             if reasons:
@@ -1574,6 +1584,12 @@ class DividendMonitor:
                     suggested_amount=actual_amount, lots=shares
                 ))
                 self.logger.info(f"[{h.code}] 第1批: {shares}股={actual_amount:,.0f}元")
+                # v8.3-fix: 首次运行更新 build_batches（此时用户尚未持仓，需自动初始化）
+                if h.code not in self.state.get("build_batches", {}) or not self.state["build_batches"].get(h.code, {}).get("completed"):
+                    self.state["build_batches"][h.code] = {
+                        "batch": 1, "completed": True,
+                        "date": datetime.now().strftime("%Y-%m-%d")
+                    }
 
         # 初始化建仓状态
         self.state["build_state"] = {
@@ -1607,10 +1623,17 @@ class DividendMonitor:
             return signals
 
         current_batch = build_state.get("current_batch", 1)
-        build_state["build_day_counter"] = build_state.get("build_day_counter", 0) + 1
-        day_counter = build_state["build_day_counter"]
+        # v8.3-fix: day_counter 基于日历日计算，而非每run+1
+        # 避免同一天多次运行导致错误推进
+        start_date_str = build_state.get("build_start_date")
+        if start_date_str:
+            start_dt = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            day_counter = (datetime.now().date() - start_dt).days
+        else:
+            day_counter = 0
+        build_state["build_day_counter"] = day_counter
 
-        self.logger.info(f"建仓进度: 第{current_batch}批，累计{day_counter}交易日")
+        self.logger.info(f"建仓进度: 第{current_batch}批，累计{day_counter}天")
 
         # 遍历未完成的批次，检查是否满足触发条件
         for batch_cfg in batches:
@@ -1638,11 +1661,17 @@ class DividendMonitor:
                 if day_counter >= time_deadline:
                     triggered = True
                     trigger_reason = f"到达{time_deadline}日时间节点"
-                # 价格下跌触发
+                # 价格下跌触发（每个标的独立判断）
                 elif price_drop > 0:
                     first_prices = build_state.get("first_batch_prices", {})
                     for h in self.holdings:
-                        if h.type == "cash" or h.code in [s.code for s in self.risk_signals if s.signal_type == "clear"]:
+                        if h.type == "cash":
+                            continue
+                        if h.code in [s.code for s in self.risk_signals if s.signal_type == "clear"]:
+                            continue
+                        # v8.3-fix: 只检查已完成前一建仓批次的标的
+                        prev_batch = self.state.get("build_batches", {}).get(h.code, {})
+                        if prev_batch.get("batch", 0) < batch_num - 1:
                             continue
                         fd = self.factor_data.get(h.code)
                         first_price = first_prices.get(h.code)
@@ -1655,12 +1684,18 @@ class DividendMonitor:
 
             if triggered:
                 self.logger.info(f"=== 第{batch_num}批建仓触发: {trigger_reason} ({description}) ===")
+                batch_signals_count = 0
                 for h in self.holdings:
                     if h.type == "cash":
                         continue
                     if h.code in [s.code for s in self.risk_signals if s.signal_type == "clear"]:
                         continue
                     if build_state.get("paused_codes", {}).get(h.code):
+                        continue
+                    # v8.3-fix: 跳过未完成前一建仓批次的标的
+                    prev_batch = self.state.get("build_batches", {}).get(h.code, {})
+                    if prev_batch.get("batch", 0) < batch_num - 1:
+                        self.logger.info(f"[{h.code}] 前一批次未完成(批次{prev_batch.get('batch',0)})，跳过批次{batch_num}")
                         continue
                     sr = self.score_results.get(h.code)
                     if not sr:
@@ -1672,11 +1707,6 @@ class DividendMonitor:
                         build_state["paused_codes"][h.code] = f"评分{sr.total_score:.1f}<{pause_score}"
                         continue
 
-                    # 计算该批次应买入金额
-                    prev_pct = sum(
-                        b.get("weight_pct", 0) for b in batches
-                        if b.get("batch", 0) < batch_num
-                    )
                     this_batch_pct = batch_pct
                     build_amount = h.target_amount * this_batch_pct
                     fd = self.factor_data.get(h.code)
@@ -1691,9 +1721,23 @@ class DividendMonitor:
                             suggested_amount=actual_amount, lots=shares
                         ))
                         self.logger.info(f"[{h.code}] 第{batch_num}批: {shares}股={actual_amount:,.0f}元")
+                        batch_signals_count += 1
+                        # v8.3-fix: 记录信号生成，但不自动推进 build_batches
+                        # 用户需在手动执行交易后更新 monitor_state.json 中的 current_weights
+                        # 此处仅记录信号已生成，防止重复推送
 
-                build_state["current_batch"] = batch_num
-                build_state["completed_batches"][batch_num] = True
+                # v8.3-fix: 记录信号生成日期，但不自动推进批次
+                # 用户需在手动执行交易后更新 monitor_state.json
+                # 如果今天已生成过信号，不再重复生成
+                last_signal_date = build_state.get("last_signal_date", "")
+                today_str = datetime.now().strftime("%Y-%m-%d")
+                if batch_signals_count > 0 and last_signal_date != today_str:
+                    build_state["last_signal_date"] = today_str
+                    self.logger.info(f"批次{batch_num}信号已生成，共{batch_signals_count}个。请手动执行交易后更新状态文件。")
+                elif batch_signals_count > 0:
+                    self.logger.info(f"批次{batch_num}信号今天已生成过，跳过重复推送。")
+                elif batch_signals_count == 0:
+                    self.logger.warning(f"批次{batch_num}触发但无有效信号")
 
                 # 检查是否全部批次完成
                 all_done = all(
@@ -1729,8 +1773,10 @@ class DividendMonitor:
         if in_build:
             interval = rb.get("build_period_check_interval_days", 14)
             self.logger.info(f"当前处于建仓期（每{interval}天检查）")
-            tol_signals = self.check_tolerance()
-            signals.extend(tol_signals)
+            # v8.3-fix: 建仓期内不执行L1容差检查，仅执行建仓批次逻辑
+            # L1(5/25规则)是持有期逻辑，在建仓期对比批次权重会产生大量假信号
+            # 建仓期的买卖信号由 _check_build_plan() 在 check_risk_control 之前独立生成
+            self.logger.info("建仓期内跳过L1容差检查，仅执行建仓批次逻辑")
         else:
             # 持有期：混合信号方案
             check_interval = rb.get("holding_check_interval_days", 10)
@@ -1826,6 +1872,20 @@ class DividendMonitor:
         self.logger.info(f"当前ERP={erp*100:.2f}%, 目标现金比例={target_cash_weight:.1%}")
 
         equity_codes = [h.code for h in self.holdings if h.type != "cash"]
+        
+        # v8.3-fix: 建仓期内不执行ERP缩放！
+        # 建仓期还在分批买入，current_weights不是最终目标，缩放会严重放大错误
+        # ERP动态现金管理只在建仓完成后执行
+        first_build_done = self.state.get("first_build_completed", False)
+        if not first_build_done:
+            self.logger.info("建仓未完成，跳过ERP动态缩放（建仓期只按批次买入，不做整体比例缩放）")
+            # 只确保现金比例是目标值，不缩放权益
+            cash_h = next((h for h in self.holdings if h.type == "cash"), None)
+            if cash_h:
+                current_equity_total = sum(self.state["current_weights"].get(c, 0) for c in equity_codes)
+                self.state["current_weights"][cash_h.code] = 1.0 - current_equity_total
+            self.logger.info("===== ERP现金管理完成（建仓期，仅更新现金比例） =====")
+            return
         current_equity_total = sum(self.state["current_weights"].get(c, 0) for c in equity_codes)
         target_equity_total = 1.0 - target_cash_weight
 
@@ -1931,7 +1991,11 @@ class DividendMonitor:
                     lines.append(f"  {h.code} {h.name}: 持股{days}天，距免税还有{365-days}天")
                 else:
                     lines.append(f"  {h.code} {h.name}: 尚未建仓")
-        lines.append(f"  现金池余额: {self.state['cash_pool']:,.0f}元（建仓完成后按ERP再投资）")
+        # v8.3-fix: 实际可用现金 = 总资金 × (1 - 权益权重)
+        actual_cash = self.config.get("total_capital", 405000) * (1.0 - sum(
+            self.state["current_weights"].get(h.code, 0) for h in self.holdings if h.type != "cash"
+        ))
+        lines.append(f"  现金池余额: {actual_cash:,.0f}元（建仓完成后按ERP再投资）")
         # v8.3 分红跟踪摘要
         div_pool = self.state.get("dividend_pool", 0)
         div_events = self.state.get("dividend_events", [])

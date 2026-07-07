@@ -1,26 +1,10 @@
 {
-  "valuation_history": [
-    {
-      "date": "2026-07-06",
-      "portfolio_pe": 12.5,
-      "portfolio_dy": 0.048
-    },
-    {
-      "date": "2026-07-07",
-      "portfolio_pe": 12.0335,
-      "portfolio_dy": 0.049
-    },
-    {
-      "date": "2026-07-07",
-      "portfolio_pe": 8.4086,
-      "portfolio_dy": 0.0508
-    }
-  ],
+  "valuation_history": [],
   "deviation_streaks": {},
   "l1_cooldown_until": {},
   "level2_streak": 0,
-  "level2_direction": null,
-  "last_comprehensive_check": null,
+  "level2_direction": "",
+  "last_comprehensive_check": "2026-07-06",
   "trading_day_counter": 1,
   "strategy_start_date": "2026-07-06",
   "first_build_completed": false,
@@ -38,15 +22,15 @@
     "515450": 0
   },
   "current_weights": {
-    "600036": 0.2896551724137931,
-    "000651": 0.19655172413793104,
-    "601668": 0.15517241379310345,
-    "600941": 0.11379310344827585,
-    "600377": 0.14482758620689656,
+    "600036": 0.056,
+    "000651": 0.038,
+    "601668": 0.03,
+    "600941": 0.022,
+    "600377": 0.028,
     "600900": 0.0,
     "000895": 0.0,
     "515450": 0.0,
-    "CASH": 0.1
+    "CASH": 0.8260000000000001
   },
   "build_batches": {
     "600036": {
@@ -99,5 +83,22 @@
     "515450": 1.354,
     "600941": 88.42,
     "600377": 12.31
+  },
+  "build_state": {
+    "current_batch": 1,
+    "build_start_date": "2026-07-06",
+    "build_day_counter": 1,
+    "completed_batches": {
+      "1": true
+    },
+    "first_batch_prices": {
+      "600036": 37.55,
+      "000651": 38.82
+      "601668": 4.52
+      "600941": 87.70,
+      "600377": 12.29
+    },
+    "paused_codes": {},
+    "last_signal_date": "2026-07-07"
   }
 }
