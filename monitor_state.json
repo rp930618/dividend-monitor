@@ -1,0 +1,14 @@
+{
+  "valuation_history": [],
+  "deviation_streaks": {},
+  "l1_cooldown_until": {},
+  "level2_streak": 0,
+  "level2_direction": null,
+  "last_comprehensive_check": null,
+  "trading_day_counter": 0,
+  "strategy_start_date": "2026-07-07",
+  "first_build_completed": false,
+  "dividend_events": [],
+  "dividend_pool": 0.0,
+  "ex_dividend_detected": {}
+}
