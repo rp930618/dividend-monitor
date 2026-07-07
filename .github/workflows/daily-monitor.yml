@@ -33,6 +33,8 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # v8.3-fix: 强制添加 monitor_state.json（核心状态文件，必须持久化）
+          git add -f monitor_state.json || true
           git add -A || true
           # 只在有变更时提交，避免空提交
           git diff --cached --quiet || git commit -m "Auto: daily state update $(date -u +%Y-%m-%d)"
