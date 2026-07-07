@@ -1,6 +1,11 @@
 {
   "valuation_history": [
     {
+      "date": "2026-07-06",
+      "portfolio_pe": 12.5,
+      "portfolio_dy": 0.048
+    },
+    {
       "date": "2026-07-07",
       "portfolio_pe": 12.0335,
       "portfolio_dy": 0.049
@@ -11,10 +16,41 @@
   "level2_streak": 0,
   "level2_direction": null,
   "last_comprehensive_check": null,
-  "trading_day_counter": 0,
-  "strategy_start_date": "2026-07-07",
+  "trading_day_counter": 1,
+  "strategy_start_date": "2026-07-06",
   "first_build_completed": false,
   "dividend_events": [],
   "dividend_pool": 0.0,
-  "ex_dividend_detected": {}
+  "ex_dividend_detected": {},
+  "holding_days": {
+    "600036": 1,
+    "000651": 1,
+    "601668": 1,
+    "600941": 1,
+    "600377": 1,
+    "600900": 0,
+    "000895": 0,
+    "515450": 0
+  },
+  "current_weights": {
+    "600036": 0.056,
+    "000651": 0.038,
+    "601668": 0.030,
+    "600941": 0.022,
+    "600377": 0.028,
+    "600900": 0.0,
+    "000895": 0.0,
+    "515450": 0.0
+  },
+  "build_batches": {
+    "600036": {"batch": 1, "completed": true, "date": "2026-07-06"},
+    "000651": {"batch": 1, "completed": true, "date": "2026-07-06"},
+    "601668": {"batch": 1, "completed": true, "date": "2026-07-06"},
+    "600941": {"batch": 1, "completed": true, "date": "2026-07-06"},
+    "600377": {"batch": 1, "completed": true, "date": "2026-07-06"},
+    "600900": {"batch": 0, "completed": false, "date": null},
+    "000895": {"batch": 0, "completed": false, "date": null},
+    "515450": {"batch": 0, "completed": false, "date": null}
+  },
+  "last_prices": {}
 }
