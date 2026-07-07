@@ -307,6 +307,9 @@ class DividendMonitor:
             "trading_day_counter": 0,          # 建仓后累计交易日
             "first_build_completed": False,    # 首次建仓是否完成
             "strategy_start_date": None,       # v8.3-fix: 策略首次运行日期（YYYY-MM-DD）
+            # === v8.3 建仓状态 ===
+            "build_batches": {},               # code -> {batch, completed, date}
+            "build_state": {},                 # {current_batch, build_start_date, ...}
             # === v8.3 分红跟踪 ===
             "dividend_events": [],              # [{code, name, record_date, ex_date, pay_date, per_share, lots, amount, confirmed}]
             "dividend_pool": 0.0,               # 累计已确认到账的分红总额
@@ -381,10 +384,14 @@ class DividendMonitor:
     # -------------------------------------------------
     def _load_persistent_state(self):
         state_file = self.script_dir / "monitor_state.json"
+        self.logger.info(f"[状态加载] 查找状态文件: {state_file}")
+        self.logger.info(f"[状态加载] 文件是否存在: {state_file.exists()}")
         if state_file.exists():
             try:
                 with open(state_file, "r", encoding="utf-8") as f:
                     persistent = json.load(f)
+                self.logger.info(f"[状态加载] 文件读取成功，包含键: {list(persistent.keys())}")
+                loaded_keys = []
                 for key in ["valuation_history", "deviation_streaks", "l1_cooldown_until",
                             "level2_streak", "level2_direction", "last_comprehensive_check",
                             "trading_day_counter", "strategy_start_date", "first_build_completed",
@@ -393,9 +400,18 @@ class DividendMonitor:
                             "build_state"]:
                     if key in persistent:
                         self.state[key] = persistent[key]
-                self.logger.info(f"已加载持久化状态: {len(self.state['valuation_history'])}条估值历史")
+                        loaded_keys.append(key)
+                self.logger.info(f"[状态加载] 已加载的键: {loaded_keys}")
+                self.logger.info(f"[状态加载] 已加载持久化状态: {len(self.state['valuation_history'])}条估值历史")
+                self.logger.info(f"[状态加载] build_batches: {self.state.get('build_batches', {})}")
+                self.logger.info(f"[状态加载] build_state: {self.state.get('build_state', {})}")
+                self.logger.info(f"[状态加载] current_weights总和: {sum(v for k,v in self.state.get('current_weights', {}).items() if k != 'CASH'):.1%}")
             except Exception as e:
-                self.logger.warning(f"加载持久化状态失败: {e}")
+                self.logger.error(f"[状态加载] 加载持久化状态失败: {e}")
+                import traceback
+                self.logger.error(f"[状态加载] 异常详情: {traceback.format_exc()}")
+        else:
+            self.logger.warning("[状态加载] monitor_state.json 不存在，将使用默认初始状态")
 
     def _save_persistent_state(self):
         state_file = self.script_dir / "monitor_state.json"
