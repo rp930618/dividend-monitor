@@ -1,5 +1,11 @@
 {
-  "valuation_history": [],
+  "valuation_history": [
+    {
+      "date": "2026-07-07",
+      "portfolio_pe": 12.0335,
+      "portfolio_dy": 0.049
+    }
+  ],
   "deviation_streaks": {},
   "l1_cooldown_until": {},
   "level2_streak": 0,
