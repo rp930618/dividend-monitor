@@ -9,6 +9,11 @@
       "date": "2026-07-07",
       "portfolio_pe": 12.0335,
       "portfolio_dy": 0.049
+    },
+    {
+      "date": "2026-07-07",
+      "portfolio_pe": 8.4086,
+      "portfolio_dy": 0.0508
     }
   ],
   "deviation_streaks": {},
@@ -33,24 +38,66 @@
     "515450": 0
   },
   "current_weights": {
-    "600036": 0.056,
-    "000651": 0.038,
-    "601668": 0.030,
-    "600941": 0.022,
-    "600377": 0.028,
+    "600036": 0.2896551724137931,
+    "000651": 0.19655172413793104,
+    "601668": 0.15517241379310345,
+    "600941": 0.11379310344827585,
+    "600377": 0.14482758620689656,
     "600900": 0.0,
     "000895": 0.0,
-    "515450": 0.0
+    "515450": 0.0,
+    "CASH": 0.1
   },
   "build_batches": {
-    "600036": {"batch": 1, "completed": true, "date": "2026-07-06"},
-    "000651": {"batch": 1, "completed": true, "date": "2026-07-06"},
-    "601668": {"batch": 1, "completed": true, "date": "2026-07-06"},
-    "600941": {"batch": 1, "completed": true, "date": "2026-07-06"},
-    "600377": {"batch": 1, "completed": true, "date": "2026-07-06"},
-    "600900": {"batch": 0, "completed": false, "date": null},
-    "000895": {"batch": 0, "completed": false, "date": null},
-    "515450": {"batch": 0, "completed": false, "date": null}
+    "600036": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "000651": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "601668": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "600941": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "600377": {
+      "batch": 1,
+      "completed": true,
+      "date": "2026-07-06"
+    },
+    "600900": {
+      "batch": 0,
+      "completed": false,
+      "date": null
+    },
+    "000895": {
+      "batch": 0,
+      "completed": false,
+      "date": null
+    },
+    "515450": {
+      "batch": 0,
+      "completed": false,
+      "date": null
+    }
   },
-  "last_prices": {}
+  "last_prices": {
+    "600036": 37.55,
+    "000651": 38.4,
+    "601668": 4.48,
+    "600900": 27.41,
+    "000895": 23.2,
+    "515450": 1.354,
+    "600941": 88.42,
+    "600377": 12.31
+  }
 }
